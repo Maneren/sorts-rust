@@ -1,6 +1,6 @@
 use super::Arr;
 
-pub fn bubble_sort<T, const CAP: usize>(array: &mut Arr<T, CAP>, start: usize, end: usize)
+pub fn bubble_sort<T>(array: &mut Arr<T>, start: usize, end: usize)
 where
   T: Ord + Copy,
 {

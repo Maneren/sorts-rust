@@ -1,10 +1,6 @@
 use super::Arr;
 
-pub fn hoare_partition<T, const CAP: usize>(
-  array: &mut Arr<T, CAP>,
-  start: usize,
-  end: usize,
-) -> usize
+pub fn hoare_partition<T>(array: &mut Arr<T>, start: usize, end: usize) -> usize
 where
   T: Ord + Copy,
 {
@@ -30,8 +26,8 @@ where
   }
 }
 
-pub fn merge<T, const CAP: usize>(
-  array: &mut Arr<T, CAP>,
+pub fn merge<T>(
+  array: &mut Arr<T>,
   left_start: usize,
   left_end: usize,
   right_start: usize,

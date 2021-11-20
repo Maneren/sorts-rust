@@ -1,6 +1,6 @@
 use super::{common::hoare_partition, Arr};
 
-pub fn hoare_quick_sort<T, const CAP: usize>(array: &mut Arr<T, CAP>, start: usize, end: usize)
+pub fn hoare_quick_sort<T>(array: &mut Arr<T>, start: usize, end: usize)
 where
   T: Ord + Copy,
 {
@@ -8,7 +8,7 @@ where
     return;
   };
 
-  let pivot = hoare_partition::<T, CAP>(array, start, end);
+  let pivot = hoare_partition(array, start, end);
 
   if pivot != 0 {
     hoare_quick_sort(array, start, pivot - 1);

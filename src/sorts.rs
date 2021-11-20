@@ -3,25 +3,20 @@ mod common;
 use std::collections::HashMap;
 
 use super::array::{Arr, ArrayWithCounters};
-use super::ITEM_COUNT;
 
 type Item = u32;
-type SortFunction<const CAP: usize> = fn(&mut ArrayWithCounters<Item, CAP>, usize, usize);
-type SortsDictionary = HashMap<Sort, Box<SortFunction<ITEM_COUNT>>>;
+type SortFunction = fn(&mut ArrayWithCounters<Item>, usize, usize);
+type SortsDictionary = HashMap<Sort, Box<SortFunction>>;
 
 macro_rules! sorts_map {
   {$($k: expr => $v: expr),* $(,)?} => {{
     let mut map = HashMap::new();
-    $( map.insert($k, Box::new($v as SortFunction<ITEM_COUNT>)); )*
+    $( map.insert($k, Box::new($v as SortFunction)); )*
     map
   }}
 }
 
-pub fn run_sort(
-  dictionary: &SortsDictionary,
-  sort: Sort,
-  array: &mut ArrayWithCounters<Item, ITEM_COUNT>,
-) {
+pub fn run_sort(dictionary: &SortsDictionary, sort: Sort, array: &mut ArrayWithCounters<Item>) {
   dictionary.get(&sort).unwrap()(array, 0, array.len() - 1)
 }
 

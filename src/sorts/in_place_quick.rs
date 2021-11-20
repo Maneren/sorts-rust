@@ -2,7 +2,7 @@ use std::fmt;
 
 use super::Arr;
 
-pub fn in_place_quick_sort<T, const CAP: usize>(array: &mut Arr<T, CAP>, start: usize, end: usize)
+pub fn in_place_quick_sort<T>(array: &mut Arr<T>, start: usize, end: usize)
 where
   T: Ord + Copy + fmt::Debug,
 {
@@ -20,7 +20,7 @@ where
   }
 }
 
-fn partition<T, const CAP: usize>(array: &mut Arr<T, CAP>, start: usize, end: usize) -> usize
+fn partition<T>(array: &mut Arr<T>, start: usize, end: usize) -> usize
 where
   T: Ord + Copy,
 {

@@ -4,8 +4,6 @@ use std::{
   ops::{Deref, DerefMut, Index, IndexMut},
 };
 
-use arrayvec::ArrayVec;
-
 #[allow(
   clippy::cast_precision_loss,
   clippy::cast_possible_truncation,
@@ -75,17 +73,17 @@ impl Stats {
   }
 }
 
-pub type Arr<T, const CAP: usize> = ArrayWithCounters<T, CAP>;
+pub type Arr<T> = ArrayWithCounters<T>;
 
-pub struct ArrayWithCounters<T, const CAP: usize> {
-  pub data: ArrayVec<T, CAP>,
+pub struct ArrayWithCounters<T> {
+  pub data: Vec<T>,
   stats: Stats,
 }
 
-impl<T, const CAP: usize> ArrayWithCounters<T, CAP> {
-  pub fn new(arr: ArrayVec<T, CAP>) -> Self {
-    ArrayWithCounters::<T, CAP> {
-      data: arr,
+impl<T> ArrayWithCounters<T> {
+  pub fn new(vec: Vec<T>) -> Self {
+    ArrayWithCounters::<T> {
+      data: vec,
       stats: Stats::new(),
     }
   }
@@ -114,7 +112,7 @@ impl<T, const CAP: usize> ArrayWithCounters<T, CAP> {
     self.stats = Stats::new();
   }
 }
-impl<T, const CAP: usize> Index<usize> for ArrayWithCounters<T, CAP> {
+impl<T> Index<usize> for ArrayWithCounters<T> {
   type Output = T;
 
   fn index(&self, index: usize) -> &Self::Output {
@@ -123,20 +121,20 @@ impl<T, const CAP: usize> Index<usize> for ArrayWithCounters<T, CAP> {
   }
 }
 
-impl<T, const CAP: usize> IndexMut<usize> for ArrayWithCounters<T, CAP> {
+impl<T> IndexMut<usize> for ArrayWithCounters<T> {
   fn index_mut(&mut self, index: usize) -> &mut Self::Output {
     self.stats.write();
     &mut self.data[index]
   }
 }
-impl<T, const CAP: usize> Deref for ArrayWithCounters<T, CAP> {
-  type Target = ArrayVec<T, CAP>;
+impl<T> Deref for ArrayWithCounters<T> {
+  type Target = Vec<T>;
 
   fn deref(&self) -> &Self::Target {
     &self.data
   }
 }
-impl<T, const CAP: usize> DerefMut for ArrayWithCounters<T, CAP> {
+impl<T> DerefMut for ArrayWithCounters<T> {
   fn deref_mut(&mut self) -> &mut Self::Target {
     &mut self.data
   }

@@ -1,6 +1,6 @@
 use super::Arr;
 
-pub fn heap_sort<T, const CAP: usize>(array: &mut Arr<T, CAP>, start: usize, end: usize)
+pub fn heap_sort<T>(array: &mut Arr<T>, start: usize, end: usize)
 where
   T: Ord + Copy,
 {
@@ -20,7 +20,7 @@ fn get_right_child_index(parent: usize) -> usize {
   2 * parent + 2
 }
 
-fn sift_down<T, const CAP: usize>(array: &mut Arr<T, CAP>, start: usize, end: usize, index: usize)
+fn sift_down<T>(array: &mut Arr<T>, start: usize, end: usize, index: usize)
 where
   T: Ord + Copy,
 {
@@ -67,7 +67,7 @@ where
   }
 }
 
-fn heapify<T, const CAP: usize>(array: &mut Arr<T, CAP>, start: usize, end: usize)
+fn heapify<T>(array: &mut Arr<T>, start: usize, end: usize)
 where
   T: Ord + Copy,
 {

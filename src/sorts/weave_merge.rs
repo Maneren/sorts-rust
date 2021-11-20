@@ -1,22 +1,18 @@
 use super::{insertion_sort, Arr};
 
-pub fn weave_merge_sort<T, const CAP: usize>(array: &mut Arr<T, CAP>, start: usize, end: usize)
+pub fn weave_merge_sort<T>(array: &mut Arr<T>, start: usize, end: usize)
 where
   T: Ord + Copy + Default,
 {
-  let mut auxiliary = Vec::with_capacity(CAP);
-
-  auxiliary.resize_with(CAP, Default::default);
+  let len = array.len();
+  let mut auxiliary = Vec::with_capacity(len);
+  auxiliary.resize_with(len, Default::default);
 
   weave_merge_sort_inner(array, start, end, &mut auxiliary)
 }
 
-pub fn weave_merge_sort_inner<T, const CAP: usize>(
-  array: &mut Arr<T, CAP>,
-  start: usize,
-  end: usize,
-  aux: &mut Vec<T>,
-) where
+pub fn weave_merge_sort_inner<T>(array: &mut Arr<T>, start: usize, end: usize, aux: &mut Vec<T>)
+where
   T: Ord + Copy,
 {
   if start == end {
@@ -37,8 +33,8 @@ pub fn weave_merge_sort_inner<T, const CAP: usize>(
   insertion_sort(array, start, end);
 }
 
-fn weak_merge<T, const CAP: usize>(
-  array: &mut Arr<T, CAP>,
+fn weak_merge<T>(
+  array: &mut Arr<T>,
   left_start: usize,
   left_end: usize,
   right_start: usize,

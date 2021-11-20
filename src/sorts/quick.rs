@@ -2,22 +2,22 @@ use super::Arr;
 
 use rand::Rng;
 
-pub fn quick_sort<T, const CAP: usize>(array: &mut Arr<T, CAP>, start: usize, end: usize)
+pub fn quick_sort<T>(array: &mut Arr<T>, start: usize, end: usize)
 where
   T: Ord + Copy + Default,
 {
   let mut rng = rand::thread_rng();
 
-  let mut auxiliaries = (Vec::with_capacity(CAP), Vec::with_capacity(CAP));
-
-  auxiliaries.0.resize_with(CAP, Default::default);
-  auxiliaries.1.resize_with(CAP, Default::default);
+  let len = array.len();
+  let mut auxiliaries = (Vec::with_capacity(len), Vec::with_capacity(len));
+  auxiliaries.0.resize_with(len, Default::default);
+  auxiliaries.1.resize_with(len, Default::default);
 
   quick_sort_inner(array, start, end, &mut auxiliaries, &mut rng)
 }
 
-fn quick_sort_inner<T, const CAP: usize>(
-  array: &mut Arr<T, CAP>,
+fn quick_sort_inner<T>(
+  array: &mut Arr<T>,
   start: usize,
   end: usize,
   auxes: &mut (Vec<T>, Vec<T>),

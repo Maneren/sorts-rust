@@ -1,22 +1,18 @@
 use super::{common::merge, insertion_sort, Arr};
 
-pub fn tim_sort<T, const CAP: usize>(array: &mut Arr<T, CAP>, start: usize, end: usize)
+pub fn tim_sort<T>(array: &mut Arr<T>, start: usize, end: usize)
 where
   T: Ord + Copy + Default,
 {
-  let mut auxiliary = Vec::with_capacity(CAP);
-
-  auxiliary.resize_with(CAP, Default::default);
+  let len = array.len();
+  let mut auxiliary = Vec::with_capacity(len);
+  auxiliary.resize_with(len, Default::default);
 
   merge_sort_inner(array, start, end, &mut auxiliary)
 }
 
-pub fn merge_sort_inner<T, const CAP: usize>(
-  array: &mut Arr<T, CAP>,
-  start: usize,
-  end: usize,
-  aux: &mut Vec<T>,
-) where
+pub fn merge_sort_inner<T>(array: &mut Arr<T>, start: usize, end: usize, aux: &mut Vec<T>)
+where
   T: Ord + Copy,
 {
   if start >= end {

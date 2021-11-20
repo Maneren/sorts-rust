@@ -1,7 +1,6 @@
 #![allow(clippy::pedantic)]
 #![feature(int_log)]
 
-use arrayvec::ArrayVec;
 use rand::seq::SliceRandom;
 use std::time::Instant;
 
@@ -12,12 +11,11 @@ use array::ArrayWithCounters;
 mod sorts;
 use sorts::{get_sorts, run_sort, Sort};
 
-const ITEM_COUNT: usize = 2000000;
+const ITEM_COUNT: usize = 20000;
 
 fn main() {
   let sorts_dictionary = get_sorts();
-  let mut nums =
-    ArrayWithCounters::new(ArrayVec::<u32, ITEM_COUNT>::from_iter(0..ITEM_COUNT as u32));
+  let mut nums = ArrayWithCounters::new((0..ITEM_COUNT as u32).collect());
 
   let mut rng = rand::thread_rng();
 
@@ -49,16 +47,16 @@ fn main() {
     }};
   }
 
-  /*  check_sort!(Sort::Bubble);
+  check_sort!(Sort::Bubble);
   check_sort!(Sort::Selection);
   check_sort!(Sort::Insertion);
-  check_sort!(Sort::CoctailShaker); */
+  check_sort!(Sort::CoctailShaker);
   check_sort!(Sort::Heap);
   check_sort!(Sort::InPlaceQuick);
   check_sort!(Sort::HoareQuick);
-  // check_sort!(Sort::Intro); TODO: fix this
+  check_sort!(Sort::Intro); // TODO: fix this
   check_sort!(Sort::Merge);
   check_sort!(Sort::Quick);
-  // check_sort!(Sort::WeaveMerge);
+  check_sort!(Sort::WeaveMerge);
   check_sort!(Sort::Tim);
 }
