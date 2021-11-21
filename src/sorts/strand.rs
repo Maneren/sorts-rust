@@ -17,28 +17,40 @@ fn strand_sort_inner<T>(
   start: usize,
   end: usize,
   input_length: usize,
-  aux: &mut Vec<T>,
+  new_output: &mut Vec<T>,
 ) where
   T: Ord + Copy + fmt::Debug,
 {
-  if input_length == 0 {
-    return;
+  let mut output_read_pointer = start + input_length;
+  let mut new_output_pointer = 0;
+
+  while output_read_pointer <= end && array[output_read_pointer] < array[0] {
+    new_output[new_output_pointer] = array[output_read_pointer];
+    new_output_pointer += 1;
+    output_read_pointer += 1;
   }
 
-  println!("> {}..{}, {}", start, end, input_length);
-
-  let mut sublist = vec![array[start]];
-  let output = Vec::from(&array[start + input_length..=end]);
+  new_output[new_output_pointer] = array[0];
+  let mut sublist_last_pointer = new_output_pointer;
+  new_output_pointer += 1;
 
   let input_length = {
     let mut new_input_length = 0;
     for i in 1..input_length {
       let value = array[start + i];
 
-      if sublist.last().unwrap() < &value {
-        sublist.push(value);
+      if new_output[sublist_last_pointer] < value {
+        while output_read_pointer <= end && array[output_read_pointer] < value {
+          new_output[new_output_pointer] = array[output_read_pointer];
+          new_output_pointer += 1;
+          output_read_pointer += 1;
+        }
+
+        new_output[new_output_pointer] = value;
+        sublist_last_pointer = new_output_pointer;
+        new_output_pointer += 1;
       } else {
-        array[start + new_input_length + 1] = value;
+        array[start + new_input_length] = value;
         new_input_length += 1;
       }
     }
@@ -46,49 +58,11 @@ fn strand_sort_inner<T>(
     new_input_length
   };
 
-  let output_length = strand_merge(output, sublist, aux);
-  let output = Vec::from(&aux[..output_length]);
-
-  output.iter().enumerate().for_each(|(i, &item)| {
-    let index = input_length + i;
-    array[start + index] = item;
-  });
-
-  strand_sort_inner(array, start, end, input_length, aux);
-}
-
-fn strand_merge<T>(left: Vec<T>, right: Vec<T>, aux: &mut Vec<T>) -> usize
-where
-  T: Ord + Copy,
-{
-  let mut left_index = 0;
-  let mut right_index = 0;
-
-  let mut i = 0;
-
-  while left_index < left.len() && right_index < right.len() {
-    let left_num = left[left_index];
-    let right_num = right[right_index];
-
-    if left_num < right_num {
-      aux[i] = left_num;
-      left_index += 1;
-    } else {
-      aux[i] = right_num;
-      right_index += 1;
-    }
-    i += 1
-  }
-  while left_index < left.len() {
-    aux[i] = left[left_index];
-    left_index += 1;
-    i += 1
-  }
-  while right_index < right.len() {
-    aux[i] = right[right_index];
-    right_index += 1;
-    i += 1
+  for i in 0..new_output_pointer {
+    array[start + input_length + i] = new_output[i];
   }
 
-  i
+  if input_length > 0 {
+    strand_sort_inner(array, start, end, input_length, new_output)
+  };
 }
