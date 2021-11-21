@@ -1,17 +1,15 @@
-use super::{common::merge, Arr};
+use super::{merge, Arr};
 
 pub fn merge_sort<T>(array: &mut Arr<T>, start: usize, end: usize)
 where
   T: Ord + Copy + Default,
 {
-  let len = array.len();
-  let mut auxiliary = Vec::with_capacity(len);
-  auxiliary.resize_with(len, Default::default);
+  let mut auxiliary = vec![Default::default(); array.len()];
 
   merge_sort_inner(array, start, end, &mut auxiliary)
 }
 
-pub fn merge_sort_inner<T>(array: &mut Arr<T>, start: usize, end: usize, aux: &mut Vec<T>)
+fn merge_sort_inner<T>(array: &mut Arr<T>, start: usize, end: usize, aux: &mut Vec<T>)
 where
   T: Ord + Copy,
 {

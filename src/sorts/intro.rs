@@ -1,4 +1,4 @@
-use super::{common::hoare_partition, heap::heap_sort, insertion::insertion_sort, Arr};
+use super::{heap_sort, hoare_partition, insertion_sort, Arr};
 
 pub fn intro_sort<T>(array: &mut Arr<T>, start: usize, end: usize)
 where
@@ -11,7 +11,7 @@ fn intro_sort_inner<T>(array: &mut Arr<T>, start: usize, end: usize, depth_limit
 where
   T: Ord + Copy,
 {
-  if (end + 1 - start) <= 16 {
+  if end - start <= 16 {
     return insertion_sort(array, start, end);
   }
 
@@ -21,6 +21,11 @@ where
 
   let pivot = hoare_partition(array, start, end);
 
-  intro_sort_inner(array, start, pivot - 1, depth_limit - 1);
-  intro_sort_inner(array, pivot + 1, end, depth_limit - 1);
+  if pivot > start + 1 {
+    intro_sort_inner(array, start, pivot - 1, depth_limit - 1);
+  }
+
+  if pivot + 1 < end {
+    intro_sort_inner(array, pivot + 1, end, depth_limit - 1);
+  }
 }

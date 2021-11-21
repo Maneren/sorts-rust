@@ -71,7 +71,7 @@ fn heapify<T>(array: &mut Arr<T>, start: usize, end: usize)
 where
   T: Ord + Copy,
 {
-  for i in (0..((end - start) / 2)).rev() {
+  for i in (0..=((end - start) / 2)).rev() {
     sift_down(array, start, end, i);
   }
 }

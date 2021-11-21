@@ -7,7 +7,8 @@ where
   let mut i = start;
   let mut j = end;
 
-  let pivot = array[((start + end) / 2)];
+  let pivot_index = start + (end - start) / 2;
+  let pivot = array[pivot_index];
 
   loop {
     while array[i] < pivot {

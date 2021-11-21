@@ -1,7 +1,7 @@
 use std::{
   cell::Cell,
   fmt::{self, Display},
-  ops::{Deref, DerefMut, Index, IndexMut},
+  ops::{Deref, DerefMut, Index, IndexMut, Range, RangeInclusive},
 };
 
 #[allow(
@@ -60,16 +60,16 @@ impl Stats {
     }
   }
 
-  fn read(&self) {
-    self.reads.replace(self.reads.get() + 1);
+  fn read(&self, n: u64) {
+    self.reads.replace(self.reads.get() + n);
   }
 
-  fn write(&mut self) {
-    self.writes.replace(self.writes.get() + 1);
+  fn write(&self, n: u64) {
+    self.writes.replace(self.writes.get() + n);
   }
 
-  fn swap(&mut self) {
-    self.swaps.replace(self.swaps.get() + 1);
+  fn swap(&self, n: u64) {
+    self.swaps.replace(self.swaps.get() + n);
   }
 }
 
@@ -96,11 +96,9 @@ impl<T> ArrayWithCounters<T> {
       return;
     }
 
-    self.stats.read();
-    self.stats.read();
-    self.stats.write();
-    self.stats.write();
-    self.stats.swap();
+    self.stats.read(2);
+    self.stats.write(2);
+    self.stats.swap(1);
     self.data.swap(a, b);
   }
 
@@ -116,14 +114,32 @@ impl<T> Index<usize> for ArrayWithCounters<T> {
   type Output = T;
 
   fn index(&self, index: usize) -> &Self::Output {
-    self.stats.read();
+    self.stats.read(1);
+    &self.data[index]
+  }
+}
+
+impl<T> Index<Range<usize>> for ArrayWithCounters<T> {
+  type Output = [T];
+
+  fn index(&self, index: Range<usize>) -> &Self::Output {
+    self.stats.read((index.end - index.start) as u64);
+    &self.data[index]
+  }
+}
+
+impl<T> Index<RangeInclusive<usize>> for ArrayWithCounters<T> {
+  type Output = [T];
+
+  fn index(&self, index: RangeInclusive<usize>) -> &Self::Output {
+    self.stats.read((index.end() + 1 - index.start()) as u64);
     &self.data[index]
   }
 }
 
 impl<T> IndexMut<usize> for ArrayWithCounters<T> {
   fn index_mut(&mut self, index: usize) -> &mut Self::Output {
-    self.stats.write();
+    self.stats.write(1);
     &mut self.data[index]
   }
 }

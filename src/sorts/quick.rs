@@ -9,9 +9,7 @@ where
   let mut rng = rand::thread_rng();
 
   let len = array.len();
-  let mut auxiliaries = (Vec::with_capacity(len), Vec::with_capacity(len));
-  auxiliaries.0.resize_with(len, Default::default);
-  auxiliaries.1.resize_with(len, Default::default);
+  let mut auxiliaries = (vec![Default::default(); len], vec![Default::default(); len]);
 
   quick_sort_inner(array, start, end, &mut auxiliaries, &mut rng)
 }
@@ -25,12 +23,6 @@ fn quick_sort_inner<T>(
 ) where
   T: Ord + Copy,
 {
-  if end <= start {
-    return;
-  };
-
-  let right_offset;
-
   let pivot = rng.gen_range(0..(end - start + 1)) + start;
   let pivot_value = array[pivot];
 
@@ -52,21 +44,23 @@ fn quick_sort_inner<T>(
     }
   }
 
-  for (i, item) in left[0..left_index].iter().enumerate() {
-    array[start + i] = *item;
-  }
+  left[0..left_index]
+    .iter()
+    .enumerate()
+    .for_each(|(i, item)| array[start + i] = *item);
 
-  right_offset = start + left_index;
+  let right_offset = start + left_index;
 
-  for (i, item) in right[0..right_index].iter().enumerate() {
-    array[right_offset + i] = *item;
-  }
+  right[0..right_index]
+    .iter()
+    .enumerate()
+    .for_each(|(i, item)| array[right_offset + i] = *item);
 
-  if right_offset != 0 {
+  if right_offset > start + 1 {
     quick_sort_inner(array, start, right_offset - 1, auxes, rng);
   }
 
-  if right_offset != end {
+  if right_offset < end {
     quick_sort_inner(array, right_offset, end, auxes, rng);
   }
 }

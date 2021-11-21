@@ -1,21 +1,16 @@
-use std::fmt;
-
 use super::Arr;
 
 pub fn in_place_quick_sort<T>(array: &mut Arr<T>, start: usize, end: usize)
 where
-  T: Ord + Copy + fmt::Debug,
+  T: Ord + Copy,
 {
-  if start >= end {
-    return;
-  };
   let pivot = partition(array, start, end);
 
-  if pivot != 0 {
+  if pivot > start + 1 {
     in_place_quick_sort(array, start, pivot - 1);
   }
 
-  if pivot != end {
+  if pivot + 1 < end {
     in_place_quick_sort(array, pivot + 1, end);
   }
 }
