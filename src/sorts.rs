@@ -24,13 +24,10 @@ use self::{
   weave_merge::*,
 };
 
-use super::{
-  array::{Arr, ArrayWithCounters},
-  Item,
-};
+use super::{array::Arr, Item};
 use std::collections::HashMap;
 
-type SortFunction = fn(&mut ArrayWithCounters<Item>, usize, usize);
+type SortFunction = fn(&mut Arr<Item>, usize, usize);
 type SortsDictionary = HashMap<Sort, Box<SortFunction>>;
 
 macro_rules! sorts_map {
@@ -41,7 +38,7 @@ macro_rules! sorts_map {
   }}
 }
 
-pub fn run_sort(dictionary: &SortsDictionary, sort: Sort, array: &mut ArrayWithCounters<Item>) {
+pub fn run_sort(dictionary: &SortsDictionary, sort: Sort, array: &mut Arr<Item>) {
   dictionary.get(&sort).unwrap()(array, 0, array.len() - 1)
 }
 

@@ -21,13 +21,13 @@ fn strand_sort_inner<T>(
 ) where
   T: Ord + Copy + fmt::Debug,
 {
-  let mut output_read_pointer = start + input_length;
+  let mut read_pointer = start + input_length;
   let mut new_output_pointer = 0;
 
-  while output_read_pointer <= end && array[output_read_pointer] < array[0] {
-    new_output[new_output_pointer] = array[output_read_pointer];
+  while read_pointer <= end && array[read_pointer] < array[0] {
+    new_output[new_output_pointer] = array[read_pointer];
     new_output_pointer += 1;
-    output_read_pointer += 1;
+    read_pointer += 1;
   }
 
   new_output[new_output_pointer] = array[0];
@@ -40,10 +40,10 @@ fn strand_sort_inner<T>(
       let value = array[start + i];
 
       if new_output[sublist_last_pointer] < value {
-        while output_read_pointer <= end && array[output_read_pointer] < value {
-          new_output[new_output_pointer] = array[output_read_pointer];
+        while read_pointer <= end && array[read_pointer] < value {
+          new_output[new_output_pointer] = array[read_pointer];
           new_output_pointer += 1;
-          output_read_pointer += 1;
+          read_pointer += 1;
         }
 
         new_output[new_output_pointer] = value;
