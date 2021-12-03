@@ -1,5 +1,5 @@
 use std::{
-  cell::Cell,
+  cell::{Cell, Ref, RefCell},
   fmt::{self, Display},
   ops::{Deref, DerefMut, Index, IndexMut, Range, RangeInclusive},
 };
@@ -73,18 +73,16 @@ impl Stats {
   }
 }
 
-pub type Arr<T> = ArrayWithCounters<T>;
-
 pub struct ArrayWithCounters<T> {
   pub data: Vec<T>,
-  stats: Stats,
+  stats: RefCell<Stats>,
 }
 
 impl<T> ArrayWithCounters<T> {
   pub fn new(vec: Vec<T>) -> Self {
     ArrayWithCounters::<T> {
       data: vec,
-      stats: Stats::new(),
+      stats: RefCell::new(Stats::new()),
     }
   }
 
@@ -96,13 +94,13 @@ impl<T> ArrayWithCounters<T> {
       return;
     }
 
-    self.stats.read(2);
-    self.stats.write(2);
-    self.stats.swap(1);
+    self.stats.borrow().read(2);
+    self.stats.borrow().write(2);
+    self.stats.borrow().swap(1);
     self.data.swap(a, b);
   }
 
-  pub fn poll(&self) -> Stats {
+  pub fn poll(&self) -> RefCell<Stats> {
     self.stats.clone()
   }
 
