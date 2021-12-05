@@ -50,7 +50,7 @@ fn strand_sort_inner<T>(
         sublist_last_pointer = new_output_pointer;
         new_output_pointer += 1;
       } else {
-        array.deref_mut()[start + new_input_length] = value;
+        *array.index_mut(start + new_input_length) = value;
         new_input_length += 1;
       }
     }
@@ -59,7 +59,7 @@ fn strand_sort_inner<T>(
   };
 
   for (i, &item) in new_output.iter().enumerate().take(new_output_pointer) {
-    array.deref_mut()[start + input_length + i] = item;
+    *array.index_mut(start + input_length + i) = item;
   }
 
   if input_length > 0 {

@@ -7,6 +7,8 @@ use std::{
   time::Duration,
 };
 
+use speedy2d::color::Color;
+
 use super::config::{READ_TIME, SWAP_TIME, WRITE_TIME};
 
 #[allow(
@@ -88,7 +90,7 @@ pub enum ArrayGuard<T: ?Sized + Index<usize> + IndexMut<usize>> {
   Write((*mut T, usize)),
 }
 
-impl<'a, T: ?Sized + Index<usize> + IndexMut<usize>> Deref for ArrayGuard<T> {
+impl<T: ?Sized + Index<usize> + IndexMut<usize>> Deref for ArrayGuard<T> {
   type Target = <T as Index<usize>>::Output;
 
   fn deref(&self) -> &Self::Target {
@@ -107,9 +109,42 @@ impl<T: ?Sized + Index<usize> + IndexMut<usize>> DerefMut for ArrayGuard<T> {
   }
 }
 
+enum HighlightType {
+  Read,
+  Write,
+  Swap,
+}
+
+#[derive(Copy, Clone, Debug)]
+pub struct Highlight(pub usize, pub Color);
+
+impl Highlight {
+  fn new(index: usize, type_: HighlightType) -> Self {
+    let color = match type_ {
+      HighlightType::Read => Color::GREEN,
+      HighlightType::Write => Color::RED,
+      HighlightType::Swap => Color::BLUE,
+    };
+    Highlight(index, color)
+  }
+
+  pub fn swap(index: usize) -> Self {
+    Self::new(index, HighlightType::Swap)
+  }
+
+  pub fn read(index: usize) -> Self {
+    Self::new(index, HighlightType::Read)
+  }
+
+  pub fn write(index: usize) -> Self {
+    Self::new(index, HighlightType::Write)
+  }
+}
+
 pub struct ArrayWithCounters<T> {
   pub data: Mutex<UnsafeCell<Vec<T>>>,
   stats: Mutex<Stats>,
+  pub highlighted: Mutex<UnsafeCell<Vec<Highlight>>>,
 }
 
 unsafe impl<T> Sync for ArrayWithCounters<T> {}
@@ -119,6 +154,7 @@ impl<T> ArrayWithCounters<T> {
     ArrayWithCounters::<T> {
       data: Mutex::new(UnsafeCell::new(vec)),
       stats: Mutex::new(Stats::new()),
+      highlighted: Mutex::new(UnsafeCell::new(Vec::with_capacity(2))),
     }
   }
 
@@ -129,10 +165,17 @@ impl<T> ArrayWithCounters<T> {
     if a == b {
       return;
     }
+
     let stats = self.stats.lock().unwrap();
     stats.read(2);
     stats.write(2);
     stats.swap(1);
+
+    let mut highlighted = self.highlighted.lock().unwrap();
+    highlighted.get_mut().clear();
+    highlighted.get_mut().push(Highlight::swap(a));
+    highlighted.get_mut().push(Highlight::swap(b));
+    Mutex::unlock(highlighted);
 
     thread::sleep(Duration::from_micros(SWAP_TIME));
 
@@ -152,6 +195,11 @@ impl<T> ArrayWithCounters<T> {
   pub fn index(&self, index: usize) -> ArrayGuard<Vec<T>> {
     self.stats.lock().unwrap().read(1);
 
+    let mut highlighted = self.highlighted.lock().unwrap();
+    highlighted.get_mut().clear();
+    highlighted.get_mut().push(Highlight::read(index));
+    Mutex::unlock(highlighted);
+
     thread::sleep(Duration::from_micros(READ_TIME));
 
     let pointer = self.data.lock().unwrap().get();
@@ -162,11 +210,19 @@ impl<T> ArrayWithCounters<T> {
   pub fn index_mut(&self, index: usize) -> ArrayGuard<Vec<T>> {
     self.stats.lock().unwrap().write(1);
 
+    let mut highlighted = self.highlighted.lock().unwrap();
+    highlighted.get_mut().clear();
+    highlighted.get_mut().push(Highlight::write(index));
+    Mutex::unlock(highlighted);
+
     thread::sleep(Duration::from_micros(WRITE_TIME));
 
     let pointer = self.data.lock().unwrap().get();
-
     ArrayGuard::Write((pointer, index))
+  }
+
+  pub fn highlights(&self) -> &Vec<Highlight> {
+    unsafe { &*self.highlighted.lock().unwrap().get() }
   }
 
   #[allow(clippy::mut_from_ref)]
