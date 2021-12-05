@@ -2,7 +2,7 @@ use super::{insertion_sort, Arr};
 
 // https://www.geeksforgeeks.org/in-place-merge-sort/
 
-pub fn in_place_merge_sort<T>(array: &mut Arr<T>, start: usize, end: usize)
+pub fn in_place_merge_sort<T>(array: Arr<T>, start: usize, end: usize)
 where
   T: Ord + Copy,
 {
@@ -12,14 +12,14 @@ where
 
   let middle = (end - start) / 2 + start;
 
-  in_place_merge_sort(array, start, middle);
-  in_place_merge_sort(array, middle + 1, end);
+  in_place_merge_sort(array.clone(), start, middle);
+  in_place_merge_sort(array.clone(), middle + 1, end);
 
   in_place_merge(array, start, middle, middle + 1, end);
 }
 
 pub fn in_place_merge<T>(
-  array: &mut Arr<T>,
+  array: Arr<T>,
   left_start: usize,
   left_end: usize,
   right_start: usize,
@@ -31,7 +31,7 @@ pub fn in_place_merge<T>(
   let right_length = right_end - right_start + 1;
 
   // Return right now if we're done
-  if left_length == 0 || right_length == 0 || array[left_end] <= array[right_start] {
+  if left_length == 0 || right_length == 0 || *array.index(left_end) <= *array.index(right_start) {
     return;
   }
 
@@ -50,7 +50,7 @@ pub fn in_place_merge<T>(
 
   let mut i = left_start;
   while i <= left_end && right_pivot <= right_end {
-    if array[left_pivot] > array[right_pivot] {
+    if *array.index(left_pivot) > *array.index(right_pivot) {
       right_pivot += 1;
     } else {
       left_pivot += 1;
@@ -75,9 +75,21 @@ pub fn in_place_merge<T>(
 
   // Now merge the two sub-array pairings
   if left_pivot > left_start {
-    in_place_merge(array, left_start, left_pivot - 1, left_pivot, left_end);
+    in_place_merge(
+      array.clone(),
+      left_start,
+      left_pivot - 1,
+      left_pivot,
+      left_end,
+    );
   }
   if right_pivot > right_start {
-    in_place_merge(array, right_start, right_pivot - 1, right_pivot, right_end);
+    in_place_merge(
+      array.clone(),
+      right_start,
+      right_pivot - 1,
+      right_pivot,
+      right_end,
+    );
   }
 }

@@ -1,6 +1,6 @@
 use super::Arr;
 
-pub fn counting_sort<T>(array: &mut Arr<T>, start: usize, end: usize)
+pub fn counting_sort<T>(array: Arr<T>, start: usize, end: usize)
 where
   T: Ord + Copy + Default + Into<usize>,
 {
@@ -11,7 +11,7 @@ where
 
   // store count of each character
   for i in 0..n {
-    let index = array[start + i].into();
+    let index = (*array.index(start + i)).into();
     count[index] += 1
   }
 
@@ -24,14 +24,14 @@ where
   // Build the output character array
   // To make it stable we are operating in reverse order.
   for i in (0..=n - 1).rev() {
-    let el = array[i];
+    let el = *array.index(i);
     output[count[el.into()] - 1] = el;
     count[el.into()] -= 1;
   }
 
   // Copy the output array to arr, so that arr now
   // contains sorted characters
-  for i in 0..n {
-    array[start + i] = output[i];
+  for (i, &item) in output.iter().enumerate().take(n) {
+    *array.index_mut(start + i) = item;
   }
 }

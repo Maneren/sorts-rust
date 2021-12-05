@@ -1,6 +1,6 @@
 use super::Arr;
 
-pub fn coctail_shaker_sort<T>(array: &mut Arr<T>, start: usize, end: usize)
+pub fn coctail_shaker_sort<T>(array: Arr<T>, start: usize, end: usize)
 where
   T: Ord + Copy,
 {
@@ -9,7 +9,7 @@ where
     for j in (i + 1..=end).rev() {
       let a = j;
       let b = j - 1;
-      if array[a] < array[b] {
+      if *array.index(a) < *array.index(b) {
         array.swap(a, b);
         swapped = true;
       }
@@ -17,7 +17,7 @@ where
     for j in i..end {
       let a = j;
       let b = j + 1;
-      if array[a] > array[b] {
+      if *array.index(a) > *array.index(b) {
         array.swap(a, b);
         swapped = true;
       }

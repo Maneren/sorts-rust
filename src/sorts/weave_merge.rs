@@ -1,6 +1,6 @@
 use super::{insertion_sort, Arr};
 
-pub fn weave_merge_sort<T>(array: &mut Arr<T>, start: usize, end: usize)
+pub fn weave_merge_sort<T>(array: Arr<T>, start: usize, end: usize)
 where
   T: Ord + Copy + Default,
 {
@@ -10,7 +10,7 @@ where
   weave_merge_sort_inner(array, start, end, &mut auxiliary)
 }
 
-fn weave_merge_sort_inner<T>(array: &mut Arr<T>, start: usize, end: usize, aux: &mut Vec<T>)
+fn weave_merge_sort_inner<T>(array: Arr<T>, start: usize, end: usize, aux: &mut Vec<T>)
 where
   T: Ord + Copy,
 {
@@ -20,20 +20,20 @@ where
 
   let middle = (end - start) / 2 + start;
 
-  weave_merge_sort_inner(array, start, middle, aux);
-  weave_merge_sort_inner(array, middle + 1, end, aux);
+  weave_merge_sort_inner(array.clone(), start, middle, aux);
+  weave_merge_sort_inner(array.clone(), middle + 1, end, aux);
 
-  let length = weak_merge(array, start, middle, middle + 1, end, aux);
+  let length = weak_merge(array.clone(), start, middle, middle + 1, end, aux);
 
   for (i, &el) in aux[0..length].iter().enumerate() {
-    array[start + i] = el;
+    *array.index_mut(start + i) = el;
   }
 
   insertion_sort(array, start, end);
 }
 
 fn weak_merge<T>(
-  array: &mut Arr<T>,
+  array: Arr<T>,
   left_start: usize,
   left_end: usize,
   right_start: usize,
@@ -49,22 +49,22 @@ where
 
   while left_index <= left_end && right_index <= right_end {
     if i % 2 == 0 {
-      result[i] = array[left_index];
+      result[i] = *array.index(left_index);
       left_index += 1;
     } else {
-      result[i] = array[right_index];
+      result[i] = *array.index(right_index);
       right_index += 1;
     }
     i += 1;
   }
 
   while left_index <= left_end {
-    result[i] = array[left_index];
+    result[i] = *array.index(left_index);
     left_index += 1;
     i += 1;
   }
   while right_index <= right_end {
-    result[i] = array[right_index];
+    result[i] = *array.index(right_index);
     right_index += 1;
     i += 1;
   }

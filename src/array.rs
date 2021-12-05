@@ -1,181 +1,187 @@
 use std::{
-    cell::Cell,
-    fmt::{self, Display},
-    ops::{Deref, DerefMut, Index, IndexMut, Range, RangeInclusive},
-    sync::Mutex,
-    thread,
-    time::Duration,
+  cell::{Cell, UnsafeCell},
+  fmt::{self, Debug, Display},
+  marker::PhantomData,
+  ops::{Deref, DerefMut, Index, IndexMut},
+  sync::Mutex,
+  thread,
+  time::Duration,
 };
 
+use super::config::{READ_TIME, SWAP_TIME, WRITE_TIME};
+
 #[allow(
-    clippy::cast_precision_loss,
-    clippy::cast_possible_truncation,
-    clippy::cast_sign_loss
+  clippy::cast_precision_loss,
+  clippy::cast_possible_truncation,
+  clippy::cast_sign_loss
 )]
 fn format_number(input: f32) -> String {
-    let sizes = ['-', 'k', 'M', 'G', 'T'];
-    let base = 1000.0;
+  let sizes = ['-', 'k', 'M', 'G', 'T'];
+  let base = 1000.0;
 
-    if input == 0.0 {
-        return "0".to_string();
-    }
+  if input == 0.0 {
+    return "0".to_string();
+  }
 
-    let i = input.log(base).floor();
-    let number = input / base.powi(i as i32);
+  let i = input.log(base).floor();
+  let number = input / base.powi(i as i32);
 
-    let string = format!("{:.2}", number)
-        .trim_end_matches('0')
-        .trim_end_matches('.')
-        .to_owned();
+  let string = format!("{:.2}", number)
+    .trim_end_matches('0')
+    .trim_end_matches('.')
+    .to_owned();
 
-    if i >= 1.0 {
-        format!("{}{}", string, sizes[i as usize])
-    } else {
-        string
-    }
+  if i >= 1.0 {
+    format!("{}{}", string, sizes[i as usize])
+  } else {
+    string
+  }
 }
 
 #[derive(Debug, Clone)]
 pub struct Stats {
-    reads: Cell<u64>,
-    writes: Cell<u64>,
-    swaps: Cell<u64>,
+  reads: Cell<u64>,
+  writes: Cell<u64>,
+  swaps: Cell<u64>,
 }
-
 impl Display for Stats {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "reads: {}, writes: {}, swaps: {}",
-            format_number(self.reads.get() as f32),
-            format_number(self.writes.get() as f32),
-            format_number(self.swaps.get() as f32)
-        )
-    }
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(
+      f,
+      "reads: {}, writes: {}, swaps: {}",
+      format_number(self.reads.get() as f32),
+      format_number(self.writes.get() as f32),
+      format_number(self.swaps.get() as f32)
+    )
+  }
 }
-
 impl Stats {
-    pub fn new() -> Self {
-        Self {
-            reads: Cell::new(0),
-            writes: Cell::new(0),
-            swaps: Cell::new(0),
-        }
+  pub fn new() -> Self {
+    Self {
+      reads: Cell::new(0),
+      writes: Cell::new(0),
+      swaps: Cell::new(0),
     }
+  }
 
-    fn read(&self, n: u64) {
-        self.reads.replace(self.reads.get() + n);
-    }
+  pub fn reset(&self) {
+    self.reads.replace(0);
+    self.writes.replace(0);
+    self.swaps.replace(0);
+  }
 
-    fn write(&self, n: u64) {
-        self.writes.replace(self.writes.get() + n);
-    }
+  fn read(&self, n: u64) {
+    self.reads.replace(self.reads.get() + n);
+  }
 
-    fn swap(&self, n: u64) {
-        self.swaps.replace(self.swaps.get() + n);
-    }
+  fn write(&self, n: u64) {
+    self.writes.replace(self.writes.get() + n);
+  }
+
+  fn swap(&self, n: u64) {
+    self.swaps.replace(self.swaps.get() + n);
+  }
 }
 
-pub struct ArrayWithCounters<T> {
-    pub data: Vec<T>,
-    stats: Mutex<Stats>,
+#[derive(Debug)]
+pub enum ArrayGuard<T: ?Sized + Index<usize> + IndexMut<usize>> {
+  Read((*mut T, usize)),
+  Write((*mut T, usize)),
 }
 
-const BASE_TIME: u64 = 10;
-const READ_TIME: u64 = BASE_TIME;
-const WRITE_TIME: u64 = 2 * BASE_TIME;
-const SWAP_TIME: u64 = 4 * BASE_TIME;
+impl<'a, T: ?Sized + Index<usize> + IndexMut<usize>> Deref for ArrayGuard<T> {
+  type Target = <T as Index<usize>>::Output;
 
-impl<T> ArrayWithCounters<T> {
-    pub fn new(vec: Vec<T>) -> Self {
-        ArrayWithCounters::<T> {
-            data: vec,
-            stats: Mutex::new(Stats::new()),
-        }
+  fn deref(&self) -> &Self::Target {
+    match self {
+      Self::Read((pointer, index)) => unsafe { &(**pointer)[*index] },
+      Self::Write((pointer, index)) => unsafe { &mut (**pointer)[*index] },
     }
-
-    pub fn swap(&mut self, a: usize, b: usize)
-    where
-        T: Copy,
-    {
-        if a == b {
-            return;
-        }
-        let stats = self.stats.lock().unwrap();
-        stats.read(2);
-        stats.write(2);
-        stats.swap(1);
-
-        thread::sleep(Duration::from_micros(SWAP_TIME));
-
-        self.data.swap(a, b);
-    }
-
-    pub fn poll(&self) -> Stats {
-        self.stats.lock().unwrap().clone()
-    }
-
-    pub fn reset(&mut self) {
-        self.stats = Mutex::new(Stats::new());
-    }
+  }
 }
-impl<T> Index<usize> for ArrayWithCounters<T> {
-    type Output = T;
-
-    fn index(&self, index: usize) -> &Self::Output {
-        self.stats.lock().unwrap().read(1);
-
-        thread::sleep(Duration::from_micros(READ_TIME));
-
-        &self.data[index]
+impl<T: ?Sized + Index<usize> + IndexMut<usize>> DerefMut for ArrayGuard<T> {
+  fn deref_mut(&mut self) -> &mut Self::Target {
+    match self {
+      Self::Read(_) => panic!("Read-only"),
+      Self::Write((pointer, index)) => unsafe { &mut (**pointer)[*index] },
     }
+  }
 }
-impl<T> Index<Range<usize>> for ArrayWithCounters<T> {
-    type Output = [T];
 
-    fn index(&self, index: Range<usize>) -> &Self::Output {
-        self.stats
-            .lock()
-            .unwrap()
-            .read((index.end - index.start) as u64);
-
-        thread::sleep(Duration::from_micros(READ_TIME));
-
-        &self.data[index]
-    }
+pub struct ArrayWithCounters<'a, T: 'a> {
+  pub data: Mutex<UnsafeCell<Vec<T>>>,
+  stats: Mutex<Stats>,
+  _marker: &'a PhantomData<T>,
 }
-impl<T> Index<RangeInclusive<usize>> for ArrayWithCounters<T> {
-    type Output = [T];
 
-    fn index(&self, index: RangeInclusive<usize>) -> &Self::Output {
-        self.stats
-            .lock()
-            .unwrap()
-            .read((index.end() + 1 - index.start()) as u64);
+unsafe impl<'a, T: 'a> Sync for ArrayWithCounters<'a, T> {}
 
-        thread::sleep(Duration::from_micros(READ_TIME));
-
-        &self.data[index]
+impl<'a, T: 'a> ArrayWithCounters<'a, T> {
+  pub fn new(vec: Vec<T>) -> Self {
+    ArrayWithCounters::<T> {
+      data: Mutex::new(UnsafeCell::new(vec)),
+      stats: Mutex::new(Stats::new()),
+      _marker: &PhantomData,
     }
+  }
+
+  pub fn swap(&self, a: usize, b: usize)
+  where
+    T: Copy,
+  {
+    if a == b {
+      return;
+    }
+    let stats = self.stats.lock().unwrap();
+    stats.read(2);
+    stats.write(2);
+    stats.swap(1);
+
+    thread::sleep(Duration::from_micros(SWAP_TIME));
+
+    let pointer = self.data.lock().unwrap().get();
+
+    unsafe { (*pointer).swap(a, b) };
+  }
+
+  pub fn poll(&self) -> Stats {
+    self.stats.lock().unwrap().clone()
+  }
+
+  pub fn reset(&self) {
+    self.stats.lock().unwrap().reset();
+  }
+
+  pub fn index(&self, index: usize) -> ArrayGuard<Vec<T>> {
+    self.stats.lock().unwrap().read(1);
+
+    thread::sleep(Duration::from_micros(READ_TIME));
+
+    let pointer = self.data.lock().unwrap().get();
+
+    ArrayGuard::Read((pointer, index))
+  }
+
+  pub fn index_mut(&self, index: usize) -> ArrayGuard<Vec<T>> {
+    self.stats.lock().unwrap().write(1);
+
+    thread::sleep(Duration::from_micros(WRITE_TIME));
+
+    let pointer = self.data.lock().unwrap().get();
+
+    ArrayGuard::Write((pointer, index))
+  }
+
+  #[allow(clippy::mut_from_ref)]
+  pub fn deref_mut(&self) -> &mut Vec<T> {
+    unsafe { &mut *self.data.lock().unwrap().get() }
+  }
 }
-impl<T> IndexMut<usize> for ArrayWithCounters<T> {
-    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
-        self.stats.lock().unwrap().write(1);
 
-        thread::sleep(Duration::from_micros(WRITE_TIME));
+impl<T> Deref for ArrayWithCounters<'_, T> {
+  type Target = Vec<T>;
 
-        &mut self.data[index]
-    }
-}
-impl<T> Deref for ArrayWithCounters<T> {
-    type Target = Vec<T>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.data
-    }
-}
-impl<T> DerefMut for ArrayWithCounters<T> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.data
-    }
+  fn deref(&self) -> &Self::Target {
+    unsafe { &*self.data.lock().unwrap().get() }
+  }
 }
