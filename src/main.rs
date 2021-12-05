@@ -30,11 +30,11 @@ fn main() {
   window.run_loop(SortsWindowHandler { array: mutex_clone });
 }
 
-struct SortsWindowHandler<'a, T> {
-  array: Arc<ArrayWithCounters<'a, T>>,
+struct SortsWindowHandler<T> {
+  array: Arc<ArrayWithCounters<T>>,
 }
 
-impl<'a> WindowHandler for SortsWindowHandler<'a, usize> {
+impl WindowHandler for SortsWindowHandler<usize> {
   fn on_draw(&mut self, helper: &mut WindowHelper, graphics: &mut Graphics2D) {
     graphics.clear_screen(Color::BLACK);
 

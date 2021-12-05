@@ -1,7 +1,6 @@
 use std::{
   cell::{Cell, UnsafeCell},
   fmt::{self, Debug, Display},
-  marker::PhantomData,
   ops::{Deref, DerefMut, Index, IndexMut},
   sync::Mutex,
   thread,
@@ -108,20 +107,18 @@ impl<T: ?Sized + Index<usize> + IndexMut<usize>> DerefMut for ArrayGuard<T> {
   }
 }
 
-pub struct ArrayWithCounters<'a, T: 'a> {
+pub struct ArrayWithCounters<T> {
   pub data: Mutex<UnsafeCell<Vec<T>>>,
   stats: Mutex<Stats>,
-  _marker: &'a PhantomData<T>,
 }
 
-unsafe impl<'a, T: 'a> Sync for ArrayWithCounters<'a, T> {}
+unsafe impl<T> Sync for ArrayWithCounters<T> {}
 
-impl<'a, T: 'a> ArrayWithCounters<'a, T> {
+impl<T> ArrayWithCounters<T> {
   pub fn new(vec: Vec<T>) -> Self {
     ArrayWithCounters::<T> {
       data: Mutex::new(UnsafeCell::new(vec)),
       stats: Mutex::new(Stats::new()),
-      _marker: &PhantomData,
     }
   }
 
@@ -178,7 +175,7 @@ impl<'a, T: 'a> ArrayWithCounters<'a, T> {
   }
 }
 
-impl<T> Deref for ArrayWithCounters<'_, T> {
+impl<T> Deref for ArrayWithCounters<T> {
   type Target = Vec<T>;
 
   fn deref(&self) -> &Self::Target {

@@ -61,6 +61,6 @@ fn quick_sort_inner<T>(
   }
 
   if right_offset < end {
-    quick_sort_inner(array.clone(), right_offset, end, auxes, rng);
+    quick_sort_inner(array, right_offset, end, auxes, rng);
   }
 }

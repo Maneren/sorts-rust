@@ -84,12 +84,6 @@ pub fn in_place_merge<T>(
     );
   }
   if right_pivot > right_start {
-    in_place_merge(
-      array.clone(),
-      right_start,
-      right_pivot - 1,
-      right_pivot,
-      right_end,
-    );
+    in_place_merge(array, right_start, right_pivot - 1, right_pivot, right_end);
   }
 }

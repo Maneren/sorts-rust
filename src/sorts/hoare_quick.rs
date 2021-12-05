@@ -11,6 +11,6 @@ where
   }
 
   if pivot + 1 < end {
-    hoare_quick_sort(array.clone(), pivot + 1, end);
+    hoare_quick_sort(array, pivot + 1, end);
   }
 }

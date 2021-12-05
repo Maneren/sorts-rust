@@ -11,7 +11,7 @@ where
   }
 
   if pivot + 1 < end {
-    in_place_quick_sort(array.clone(), pivot + 1, end);
+    in_place_quick_sort(array, pivot + 1, end);
   }
 }
 

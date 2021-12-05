@@ -27,7 +27,7 @@ use self::{
 use super::{array::ArrayWithCounters, Item};
 use std::{collections::HashMap, sync::Arc};
 
-pub type Arr<'a, T> = Arc<ArrayWithCounters<'a, T>>;
+pub type Arr<'a, T> = Arc<ArrayWithCounters<T>>;
 
 type SortFunction = fn(Arr<Item>, usize, usize);
 type SortsDictionary = HashMap<Sort, Box<SortFunction>>;

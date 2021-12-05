@@ -26,6 +26,6 @@ where
   }
 
   if pivot + 1 < end {
-    intro_sort_inner(array.clone(), pivot + 1, end, depth_limit - 1);
+    intro_sort_inner(array, pivot + 1, end, depth_limit - 1);
   }
 }
