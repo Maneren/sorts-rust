@@ -3,9 +3,10 @@
 #![feature(is_sorted)]
 
 use rand::seq::SliceRandom;
-use std::sync::{Arc, Mutex, RwLock};
+use speedy2d::shape::Rectangle;
+use std::sync::{Arc, RwLock};
 use std::thread;
-use std::time::Instant;
+use std::time::{Duration, Instant};
 
 use speedy2d::color::Color;
 use speedy2d::dimen::Vector2;
@@ -13,43 +14,41 @@ use speedy2d::window::{WindowHandler, WindowHelper};
 use speedy2d::{Graphics2D, Window};
 
 fn main() {
-  let mut nums = ArrayWithCounters::new((0..ITEM_COUNT).collect());
-  let mut mutex = Arc::new(RwLock::new(nums));
-  let mut mutex_clone = mutex.clone();
+    let nums = ArrayWithCounters::new((0..ITEM_COUNT).collect());
+    let mutex = Arc::new(RwLock::new(nums));
+    let mutex_clone = mutex.clone();
 
-  let handle = thread::spawn(move || {
+    thread::spawn(move || {
+        thread::sleep(Duration::from_secs(1));
+        run_sorts(mutex);
+    });
+
     let window = Window::new_centered("Sorts Animation", (800, 800)).unwrap();
-    window.run_loop(SortsWindowHandler {
-      start_time: Instant::now(),
-      mutex: mutex_clone,
-    })
-  });
-
-  run_sorts(nums);
-
-  handle.join().unwrap();
+    window.run_loop(SortsWindowHandler { mutex: mutex_clone });
 }
 
-struct SortsWindowHandler {
-  start_time: Instant,
+struct SortsWindowHandler<T> {
+    mutex: Arc<RwLock<ArrayWithCounters<T>>>,
 }
 
-impl WindowHandler for SortsWindowHandler {
-  fn on_draw(&mut self, helper: &mut WindowHelper, graphics: &mut Graphics2D) {
-    graphics.clear_screen(Color::WHITE);
+impl WindowHandler for SortsWindowHandler<usize> {
+    fn on_draw(&mut self, helper: &mut WindowHelper, graphics: &mut Graphics2D) {
+        graphics.clear_screen(Color::BLACK);
 
-    let elapsed_secs = self.start_time.elapsed().as_secs_f32();
+        for (i, &item) in self.mutex.read().unwrap().iter().enumerate() {
+            let item = item as f32 + 1_f32;
+            let i = i as f32;
+            let count = ITEM_COUNT as f32;
 
-    let center = Vector2::new(400.0, 400.0);
-    let offset = 200.0;
+            let size = 800_f32;
+            let top_left = Vector2::new(size / count * i, size - (item / count * size));
+            let bottom_right = Vector2::new(size / count * (i + 1_f32), size);
 
-    let position = center + Vector2::new(elapsed_secs.cos() * offset, elapsed_secs.sin() * offset);
+            graphics.draw_rectangle(Rectangle::new(top_left, bottom_right), Color::WHITE)
+        }
 
-    graphics.draw_circle(position, 75.0, Color::from_rgb(0.8, 0.9, 1.0));
-
-    // Request that we draw another frame once this one has finished
-    helper.request_redraw();
-  }
+        helper.request_redraw();
+    }
 }
 
 mod array;
@@ -61,57 +60,57 @@ use sorts::{get_sorts, run_sort, Sort};
 
 type Item = usize;
 
-const ITEM_COUNT: Item = 50000;
+const ITEM_COUNT: Item = 2048;
 
-fn run_sorts(nums: Arc<RwLock<ArrayWithCounters<usize>>>) {
-  let sorts_dictionary = get_sorts();
+fn run_sorts(mut nums: Arc<RwLock<ArrayWithCounters<usize>>>) {
+    let sorts_dictionary = get_sorts();
 
-  let mut rng = rand::thread_rng();
+    let mut rng = rand::thread_rng();
 
-  macro_rules! check_sort {
-    ( $sort: expr) => {{
-      {
-        let nums_guard = nums.write().unwrap();
-        nums_guard.shuffle(&mut rng);
-        nums_guard.reverse();
-      }
+    macro_rules! check_sort {
+        ( $sort: expr) => {{
+            {
+                let mut nums_guard = nums.write().unwrap();
+                nums_guard.shuffle(&mut rng);
+                nums_guard.reverse();
+            }
 
-      let start = Instant::now();
-      run_sort(&sorts_dictionary, $sort, &mut nums);
-      let time = start.elapsed();
+            let start = Instant::now();
+            run_sort(&sorts_dictionary, $sort, &mut nums);
+            let time = start.elapsed();
 
-      let nums = nums.read().unwrap();
+            let mut nums = nums.write().unwrap();
 
-      println!("{:?} - {:?}", $sort, time);
-      println!("{}\n", nums.poll());
+            println!("{:?} - {:?}", $sort, time);
+            println!("{}\n", nums.poll());
 
-      if !nums.data.is_sorted() {
-        for (a, b) in (0..nums.len()).zip(1..nums.len()) {
-          if nums[a] > nums[b] {
-            panic!("{}: {:?}", a, &(*nums)[a..=a + 2])
-          }
-        }
-        panic!("Incorrect!!!");
-      }
+            if !nums.data.is_sorted() {
+                for (a, b) in (0..nums.len()).zip(1..nums.len()) {
+                    if nums[a] > nums[b] {
+                        panic!("{}: {:?}", a, &(*nums)[a..=a + 2])
+                    }
+                }
+                panic!("Incorrect!!!");
+            }
 
-      nums.reset();
-    }};
-  }
+            nums.reset();
+        }};
+    }
 
-  check_sort!(Sort::Bubble);
-  check_sort!(Sort::CoctailShaker);
-  check_sort!(Sort::Selection);
-  check_sort!(Sort::Gnome);
-  check_sort!(Sort::Insertion);
-  check_sort!(Sort::Strand);
-  check_sort!(Sort::Heap);
-  check_sort!(Sort::Quick);
-  check_sort!(Sort::InPlaceQuick);
-  check_sort!(Sort::HoareQuick);
-  check_sort!(Sort::Intro);
-  check_sort!(Sort::Merge);
-  check_sort!(Sort::Tim);
-  check_sort!(Sort::InPlaceMerge);
-  check_sort!(Sort::WeaveMerge);
-  check_sort!(Sort::Counting);
+    // check_sort!(Sort::Bubble);
+    // check_sort!(Sort::CoctailShaker);
+    // check_sort!(Sort::Selection);
+    // check_sort!(Sort::Gnome);
+    // check_sort!(Sort::Insertion);
+    check_sort!(Sort::Strand);
+    check_sort!(Sort::Heap);
+    // check_sort!(Sort::Quick);
+    // check_sort!(Sort::InPlaceQuick);
+    // check_sort!(Sort::HoareQuick);
+    // check_sort!(Sort::Intro);
+    // check_sort!(Sort::Merge);
+    // check_sort!(Sort::Tim);
+    // check_sort!(Sort::InPlaceMerge);
+    // check_sort!(Sort::WeaveMerge);
+    // check_sort!(Sort::Counting);
 }
