@@ -8,14 +8,14 @@ where
   let mut j = end;
 
   let pivot_index = start + (end - start) / 2;
-  let pivot = *array.index(pivot_index);
+  let pivot = *array[pivot_index];
 
   loop {
-    while *array.index(i) < pivot {
+    while *array[i] < pivot {
       i += 1;
     }
 
-    while *array.index(j) > pivot {
+    while *array[j] > pivot {
       j -= 1;
     }
 
@@ -43,8 +43,8 @@ pub fn merge<T>(
   let mut i = 0;
 
   while left_index <= left_end && right_index <= right_end {
-    let left_num = *array.index(left_index);
-    let right_num = *array.index(right_index);
+    let left_num = *array[left_index];
+    let right_num = *array[right_index];
 
     if left_num <= right_num {
       result[i] = left_num;
@@ -57,13 +57,13 @@ pub fn merge<T>(
   }
 
   while left_index <= left_end {
-    result[i] = *array.index(left_index);
+    result[i] = *array[left_index];
     left_index += 1;
     i += 1;
   }
 
   while right_index <= right_end {
-    result[i] = *array.index(right_index);
+    result[i] = *array[right_index];
     right_index += 1;
     i += 1;
   }

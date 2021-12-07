@@ -7,7 +7,7 @@ where
   let mut index = start;
   while index < end {
     let (a, b) = (index, index + 1);
-    if *array.index(a) < *array.index(b) {
+    if *array[a] < *array[b] {
       index += 1;
     } else {
       array.swap(a, b);

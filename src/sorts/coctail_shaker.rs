@@ -9,7 +9,7 @@ where
     for j in (i + 1..=end).rev() {
       let a = j;
       let b = j - 1;
-      if *array.index(a) < *array.index(b) {
+      if *array[a] < *array[b] {
         array.swap(a, b);
         swapped = true;
       }
@@ -17,7 +17,7 @@ where
     for j in i..end {
       let a = j;
       let b = j + 1;
-      if *array.index(a) > *array.index(b) {
+      if *array[a] > *array[b] {
         array.swap(a, b);
         swapped = true;
       }

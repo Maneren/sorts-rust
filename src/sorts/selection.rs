@@ -5,12 +5,17 @@ where
   T: Ord + Copy,
 {
   for i in start..=end {
-    let mut smallest = i;
+    let mut smallest_i = i;
+    let mut smallest_val = *array[smallest_i];
+
     for j in i..=end {
-      if *array.index(j) < *array.index(smallest) {
-        smallest = j;
+      let current = *array[j];
+
+      if current < smallest_val {
+        smallest_i = j;
+        smallest_val = current;
       }
     }
-    array.swap(i, smallest);
+    array.swap(i, smallest_i);
   }
 }

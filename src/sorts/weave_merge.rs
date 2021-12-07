@@ -49,22 +49,22 @@ where
 
   while left_index <= left_end && right_index <= right_end {
     if i % 2 == 0 {
-      result[i] = *array.index(left_index);
+      result[i] = *array[left_index];
       left_index += 1;
     } else {
-      result[i] = *array.index(right_index);
+      result[i] = *array[right_index];
       right_index += 1;
     }
     i += 1;
   }
 
   while left_index <= left_end {
-    result[i] = *array.index(left_index);
+    result[i] = *array[left_index];
     left_index += 1;
     i += 1;
   }
   while right_index <= right_end {
-    result[i] = *array.index(right_index);
+    result[i] = *array[right_index];
     right_index += 1;
     i += 1;
   }

@@ -25,18 +25,18 @@ where
   T: Ord + Copy,
 {
   let current_i = start + index;
-  let current = *array.index(current_i);
+  let current = *array[current_i];
 
   let right_i = start + get_right_child_index(index);
   let left_i = start + get_left_child_index(index);
 
   let right = if right_i <= end {
-    Some(*array.index(right_i))
+    Some(*array[right_i])
   } else {
     None
   };
   let left = if left_i <= end {
-    Some(*array.index(left_i))
+    Some(*array[left_i])
   } else {
     None
   };

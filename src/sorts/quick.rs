@@ -24,7 +24,7 @@ fn quick_sort_inner<T>(
   T: Ord + Copy,
 {
   let pivot = rng.gen_range(0..(end - start + 1)) + start;
-  let pivot_value = *array.index(pivot);
+  let pivot_value = *array[pivot];
 
   let right = &mut auxes.0;
   let left = &mut auxes.1;
@@ -33,7 +33,7 @@ fn quick_sort_inner<T>(
   let mut right_index = 0;
 
   for i in start..=end {
-    let item = *array.index(i);
+    let item = *array[i];
 
     if item < pivot_value {
       left[left_index] = item;

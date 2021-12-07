@@ -1,10 +1,10 @@
 use std::{
   cell::{Cell, UnsafeCell},
   fmt::{self, Debug, Display},
+  marker::PhantomData,
   ops::{Deref, DerefMut, Index, IndexMut},
   sync::Mutex,
   thread,
-  time::Duration,
 };
 
 use speedy2d::color::Color;
@@ -84,12 +84,20 @@ impl Stats {
   }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Copy)]
 pub enum ArrayGuard<T: ?Sized + Index<usize> + IndexMut<usize>> {
   Read((*mut T, usize)),
   Write((*mut T, usize)),
 }
 
+impl<T: ?Sized + Index<usize> + IndexMut<usize>> Clone for ArrayGuard<T> {
+  fn clone(&self) -> Self {
+    match self {
+      Self::Read((pointer, index)) => Self::Read((*pointer, *index)),
+      Self::Write((pointer, index)) => Self::Write((*pointer, *index)),
+    }
+  }
+}
 impl<T: ?Sized + Index<usize> + IndexMut<usize>> Deref for ArrayGuard<T> {
   type Target = <T as Index<usize>>::Output;
 
@@ -108,6 +116,8 @@ impl<T: ?Sized + Index<usize> + IndexMut<usize>> DerefMut for ArrayGuard<T> {
     }
   }
 }
+unsafe impl<T: ?Sized + Index<usize> + IndexMut<usize>> Sync for ArrayGuard<T> {}
+unsafe impl<T: ?Sized + Index<usize> + IndexMut<usize>> Send for ArrayGuard<T> {}
 
 enum HighlightType {
   Read,
@@ -141,20 +151,26 @@ impl Highlight {
   }
 }
 
-pub struct ArrayWithCounters<T> {
+pub struct ArrayWithCounters<'a, T: 'a> {
   pub data: Mutex<UnsafeCell<Vec<T>>>,
-  stats: Mutex<Stats>,
+  guard: UnsafeCell<ArrayGuard<Vec<T>>>,
+  stats: Stats,
   pub highlighted: Mutex<UnsafeCell<Vec<Highlight>>>,
+  phantom: PhantomData<&'a T>,
 }
 
-unsafe impl<T> Sync for ArrayWithCounters<T> {}
+unsafe impl<'a, T> Sync for ArrayWithCounters<'a, T> {}
 
-impl<T> ArrayWithCounters<T> {
+impl<'a, T> ArrayWithCounters<'a, T> {
   pub fn new(vec: Vec<T>) -> Self {
-    ArrayWithCounters::<T> {
-      data: Mutex::new(UnsafeCell::new(vec)),
-      stats: Mutex::new(Stats::new()),
+    let data = Mutex::new(UnsafeCell::new(vec));
+    let guard = UnsafeCell::new(ArrayGuard::Read((data.lock().unwrap().get(), 0)));
+    ArrayWithCounters {
+      data,
+      guard,
+      stats: Stats::new(),
       highlighted: Mutex::new(UnsafeCell::new(Vec::with_capacity(2))),
+      phantom: PhantomData,
     }
   }
 
@@ -166,10 +182,9 @@ impl<T> ArrayWithCounters<T> {
       return;
     }
 
-    let stats = self.stats.lock().unwrap();
-    stats.read(2);
-    stats.write(2);
-    stats.swap(1);
+    self.stats.read(2);
+    self.stats.write(2);
+    self.stats.swap(1);
 
     let mut highlighted = self.highlighted.lock().unwrap();
     highlighted.get_mut().clear();
@@ -177,45 +192,28 @@ impl<T> ArrayWithCounters<T> {
     highlighted.get_mut().push(Highlight::swap(b));
     Mutex::unlock(highlighted);
 
-    thread::sleep(Duration::from_micros(SWAP_TIME));
+    thread::sleep(SWAP_TIME);
 
-    let pointer = self.data.lock().unwrap().get();
-
-    unsafe { (*pointer).swap(a, b) };
+    self.data.lock().unwrap().get_mut().swap(a, b);
   }
 
   pub fn poll(&self) -> Stats {
-    self.stats.lock().unwrap().clone()
+    self.stats.clone()
   }
 
   pub fn reset(&self) {
-    self.stats.lock().unwrap().reset();
-  }
-
-  pub fn index(&self, index: usize) -> ArrayGuard<Vec<T>> {
-    self.stats.lock().unwrap().read(1);
-
-    let mut highlighted = self.highlighted.lock().unwrap();
-    highlighted.get_mut().clear();
-    highlighted.get_mut().push(Highlight::read(index));
-    Mutex::unlock(highlighted);
-
-    thread::sleep(Duration::from_micros(READ_TIME));
-
-    let pointer = self.data.lock().unwrap().get();
-
-    ArrayGuard::Read((pointer, index))
+    self.stats.reset();
   }
 
   pub fn index_mut(&self, index: usize) -> ArrayGuard<Vec<T>> {
-    self.stats.lock().unwrap().write(1);
+    self.stats.write(1);
 
     let mut highlighted = self.highlighted.lock().unwrap();
     highlighted.get_mut().clear();
     highlighted.get_mut().push(Highlight::write(index));
     Mutex::unlock(highlighted);
 
-    thread::sleep(Duration::from_micros(WRITE_TIME));
+    thread::sleep(WRITE_TIME);
 
     let pointer = self.data.lock().unwrap().get();
     ArrayGuard::Write((pointer, index))
@@ -230,8 +228,47 @@ impl<T> ArrayWithCounters<T> {
     unsafe { &mut *self.data.lock().unwrap().get() }
   }
 }
+impl<'a, T> Index<usize> for ArrayWithCounters<'a, T> {
+  type Output = ArrayGuard<Vec<T>>;
 
-impl<T> Deref for ArrayWithCounters<T> {
+  fn index(&self, index: usize) -> &Self::Output {
+    self.stats.read(1);
+
+    let mut highlighted = self.highlighted.lock().unwrap();
+    highlighted.get_mut().clear();
+    highlighted.get_mut().push(Highlight::read(index));
+    Mutex::unlock(highlighted);
+
+    thread::sleep(READ_TIME);
+
+    unsafe {
+      *self.guard.get() = ArrayGuard::Read((self.data.lock().unwrap().get(), index));
+    }
+
+    unsafe { &(*self.guard.get()) }
+  }
+}
+
+impl<'a, T> IndexMut<usize> for ArrayWithCounters<'a, T> {
+  fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+    self.stats.read(1);
+
+    let mut highlighted = self.highlighted.lock().unwrap();
+    highlighted.get_mut().clear();
+    highlighted.get_mut().push(Highlight::write(index));
+    Mutex::unlock(highlighted);
+
+    thread::sleep(WRITE_TIME);
+
+    unsafe {
+      *self.guard.get() = ArrayGuard::Write((self.data.lock().unwrap().get(), index));
+    }
+
+    unsafe { &mut (*self.guard.get()) }
+  }
+}
+
+impl<'a, T> Deref for ArrayWithCounters<'a, T> {
   type Target = Vec<T>;
 
   fn deref(&self) -> &Self::Target {

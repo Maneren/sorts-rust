@@ -11,7 +11,7 @@ where
 
   // store count of each character
   for i in 0..n {
-    let index = (*array.index(start + i)).into();
+    let index = (*array[start + i]).into();
     count[index] += 1
   }
 
@@ -24,7 +24,7 @@ where
   // Build the output character array
   // To make it stable we are operating in reverse order.
   for i in (0..=n - 1).rev() {
-    let el = *array.index(i);
+    let el = *array[i];
     output[count[el.into()] - 1] = el;
     count[el.into()] -= 1;
   }

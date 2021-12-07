@@ -24,24 +24,24 @@ fn strand_sort_inner<T>(
   let mut read_pointer = start + input_length;
   let mut new_output_pointer = 0;
 
-  while read_pointer <= end && *array.index(read_pointer) < *array.index(0) {
-    new_output[new_output_pointer] = *array.index(read_pointer);
+  while read_pointer <= end && *array[read_pointer] < *array[0] {
+    new_output[new_output_pointer] = *array[read_pointer];
     new_output_pointer += 1;
     read_pointer += 1;
   }
 
-  new_output[new_output_pointer] = *array.index(0);
+  new_output[new_output_pointer] = *array[0];
   let mut sublist_last_pointer = new_output_pointer;
   new_output_pointer += 1;
 
   let input_length = {
     let mut new_input_length = 0;
     for i in 1..input_length {
-      let value = *array.index(start + i);
+      let value = *array[start + i];
 
       if new_output[sublist_last_pointer] < value {
-        while read_pointer <= end && *array.index(read_pointer) < value {
-          new_output[new_output_pointer] = *array.index(read_pointer);
+        while read_pointer <= end && *array[read_pointer] < value {
+          new_output[new_output_pointer] = *array[read_pointer];
           new_output_pointer += 1;
           read_pointer += 1;
         }

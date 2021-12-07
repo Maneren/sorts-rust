@@ -31,7 +31,7 @@ pub fn in_place_merge<T>(
   let right_length = right_end - right_start + 1;
 
   // Return right now if we're done
-  if left_length == 0 || right_length == 0 || *array.index(left_end) <= *array.index(right_start) {
+  if left_length == 0 || right_length == 0 || *array[left_end] <= *array[right_start] {
     return;
   }
 
@@ -50,7 +50,7 @@ pub fn in_place_merge<T>(
 
   let mut i = left_start;
   while i <= left_end && right_pivot <= right_end {
-    if *array.index(left_pivot) > *array.index(right_pivot) {
+    if *array[left_pivot] > *array[right_pivot] {
       right_pivot += 1;
     } else {
       left_pivot += 1;

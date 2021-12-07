@@ -9,7 +9,8 @@ where
     for j in start..i {
       let a = j;
       let b = j + 1;
-      if *array.index(a) > *array.index(b) {
+
+      if *array[a] > *array[b] {
         array.swap(a, b);
         swapped = true;
       }

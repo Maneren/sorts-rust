@@ -20,9 +20,10 @@ where
   T: Ord + Copy,
 {
   let mut pivot_index = start;
+  let end_value = *array[end];
 
   for i in start..end {
-    if *array.index(i) < *array.index(end) {
+    if *array[i] < end_value {
       array.swap(i, pivot_index);
       pivot_index += 1;
     }
