@@ -1,9 +1,6 @@
 use super::{hoare_partition, Arr};
 
-pub fn hoare_quick_sort<T>(array: Arr<T>, start: usize, end: usize)
-where
-  T: Ord + Copy,
-{
+pub fn hoare_quick_sort(array: Arr, start: usize, end: usize) {
   let pivot = hoare_partition(array.clone(), start, end);
 
   if pivot > start + 1 {

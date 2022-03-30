@@ -1,9 +1,6 @@
 use super::Arr;
 
-pub fn in_place_quick_sort<T>(array: Arr<T>, start: usize, end: usize)
-where
-  T: Ord + Copy,
-{
+pub fn in_place_quick_sort(array: Arr, start: usize, end: usize) {
   let pivot = partition(array.clone(), start, end);
 
   if pivot > start + 1 {
@@ -15,15 +12,12 @@ where
   }
 }
 
-fn partition<T>(array: Arr<T>, start: usize, end: usize) -> usize
-where
-  T: Ord + Copy,
-{
+fn partition(array: Arr, start: usize, end: usize) -> usize {
   let mut pivot_index = start;
-  let end_value = *array[end];
+  let end_value = array.get(end);
 
   for i in start..end {
-    if *array[i] < end_value {
+    if array.get(i) < end_value {
       array.swap(i, pivot_index);
       pivot_index += 1;
     }

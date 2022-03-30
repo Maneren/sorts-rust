@@ -2,10 +2,7 @@ use super::Arr;
 
 use rand::Rng;
 
-pub fn quick_sort<T>(array: Arr<T>, start: usize, end: usize)
-where
-  T: Ord + Copy + Default,
-{
+pub fn quick_sort(array: Arr, start: usize, end: usize) {
   let mut rng = rand::thread_rng();
 
   let len = array.len();
@@ -14,17 +11,15 @@ where
   quick_sort_inner(array, start, end, &mut auxiliaries, &mut rng)
 }
 
-fn quick_sort_inner<T>(
-  array: Arr<T>,
+fn quick_sort_inner(
+  array: Arr,
   start: usize,
   end: usize,
-  auxes: &mut (Vec<T>, Vec<T>),
+  auxes: &mut (Vec<usize>, Vec<usize>),
   rng: &mut impl Rng,
-) where
-  T: Ord + Copy,
-{
+) {
   let pivot = rng.gen_range(0..(end - start + 1)) + start;
-  let pivot_value = *array[pivot];
+  let pivot_value = array.get(pivot);
 
   let right = &mut auxes.0;
   let left = &mut auxes.1;
@@ -33,7 +28,7 @@ fn quick_sort_inner<T>(
   let mut right_index = 0;
 
   for i in start..=end {
-    let item = *array[i];
+    let item = array.get(i);
 
     if item < pivot_value {
       left[left_index] = item;
@@ -47,14 +42,14 @@ fn quick_sort_inner<T>(
   left[0..left_index]
     .iter()
     .enumerate()
-    .for_each(|(i, item)| *array.index_mut(start + i) = *item);
+    .for_each(|(i, &item)| array.set(start + i, item));
 
   let right_offset = start + left_index;
 
   right[0..right_index]
     .iter()
     .enumerate()
-    .for_each(|(i, item)| *array.index_mut(right_offset + i) = *item);
+    .for_each(|(i, &item)| array.set(right_offset + i, item));
 
   if right_offset > start + 1 {
     quick_sort_inner(array.clone(), start, right_offset - 1, auxes, rng);

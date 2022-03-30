@@ -1,18 +1,12 @@
 use super::{insertion_sort, merge, Arr};
 
-pub fn tim_sort<T>(array: Arr<T>, start: usize, end: usize)
-where
-  T: Ord + Copy + Default,
-{
+pub fn tim_sort(array: Arr, start: usize, end: usize) {
   let mut auxiliary = vec![Default::default(); array.len()];
 
   tim_sort_inner(array, start, end, &mut auxiliary)
 }
 
-fn tim_sort_inner<T>(array: Arr<T>, start: usize, end: usize, aux: &mut Vec<T>)
-where
-  T: Ord + Copy,
-{
+fn tim_sort_inner(array: Arr, start: usize, end: usize, aux: &mut Vec<usize>) {
   if start >= end {
     return;
   }

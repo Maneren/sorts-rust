@@ -1,9 +1,6 @@
 use super::Arr;
 
-pub fn heap_sort<T>(array: Arr<T>, start: usize, end: usize)
-where
-  T: Ord + Copy,
-{
+pub fn heap_sort(array: Arr, start: usize, end: usize) {
   heapify(array.clone(), start, end);
 
   for i in (1..end - start + 1).rev() {
@@ -20,23 +17,20 @@ fn get_right_child_index(parent: usize) -> usize {
   2 * parent + 2
 }
 
-fn sift_down<T>(array: Arr<T>, start: usize, end: usize, index: usize)
-where
-  T: Ord + Copy,
-{
+fn sift_down(array: Arr, start: usize, end: usize, index: usize) {
   let current_i = start + index;
-  let current = *array[current_i];
+  let current = array.get(current_i);
 
   let right_i = start + get_right_child_index(index);
   let left_i = start + get_left_child_index(index);
 
   let right = if right_i <= end {
-    Some(*array[right_i])
+    Some(array.get(right_i))
   } else {
     None
   };
   let left = if left_i <= end {
-    Some(*array[left_i])
+    Some(array.get(left_i))
   } else {
     None
   };
@@ -67,10 +61,7 @@ where
   }
 }
 
-fn heapify<T>(array: Arr<T>, start: usize, end: usize)
-where
-  T: Ord + Copy,
-{
+fn heapify(array: Arr, start: usize, end: usize) {
   for i in (0..=((end - start) / 2)).rev() {
     sift_down(array.clone(), start, end, i);
   }

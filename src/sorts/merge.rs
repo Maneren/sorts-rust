@@ -1,18 +1,12 @@
 use super::{merge, Arr};
 
-pub fn merge_sort<T>(array: Arr<T>, start: usize, end: usize)
-where
-  T: Ord + Copy + Default,
-{
+pub fn merge_sort(array: Arr, start: usize, end: usize) {
   let mut auxiliary = vec![Default::default(); array.len()];
 
   merge_sort_inner(array, start, end, &mut auxiliary)
 }
 
-fn merge_sort_inner<T>(array: Arr<T>, start: usize, end: usize, aux: &mut Vec<T>)
-where
-  T: Ord + Copy,
-{
+fn merge_sort_inner(array: Arr, start: usize, end: usize, aux: &mut Vec<usize>) {
   if start >= end {
     return;
   }

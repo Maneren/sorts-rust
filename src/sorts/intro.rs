@@ -1,16 +1,10 @@
 use super::{heap_sort, hoare_partition, insertion_sort, Arr};
 
-pub fn intro_sort<T>(array: Arr<T>, start: usize, end: usize)
-where
-  T: Ord + Copy,
-{
+pub fn intro_sort(array: Arr, start: usize, end: usize) {
   intro_sort_inner(array, start, end, 2 * (end - start + 1).log(2) as usize)
 }
 
-fn intro_sort_inner<T>(array: Arr<T>, start: usize, end: usize, depth_limit: usize)
-where
-  T: Ord + Copy,
-{
+fn intro_sort_inner(array: Arr, start: usize, end: usize, depth_limit: usize) {
   if end - start <= 16 {
     return insertion_sort(array, start, end);
   }

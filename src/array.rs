@@ -1,13 +1,16 @@
 use std::{
-  cell::{Cell, UnsafeCell},
   fmt::{self, Debug, Display},
-  marker::PhantomData,
-  ops::{Deref, DerefMut, Index, IndexMut},
-  sync::Mutex,
+  sync::{
+    atomic::{AtomicU64, AtomicUsize},
+    Mutex,
+  },
   thread,
 };
 
+use rand::prelude::{SliceRandom, ThreadRng};
 use speedy2d::color::Color;
+
+use crate::ORDER;
 
 use super::config::{READ_TIME, SWAP_TIME, WRITE_TIME};
 
@@ -39,85 +42,59 @@ fn format_number(input: f32) -> String {
   }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct Stats {
-  reads: Cell<u64>,
-  writes: Cell<u64>,
-  swaps: Cell<u64>,
+  reads: AtomicU64,
+  writes: AtomicU64,
+  swaps: AtomicU64,
+}
+impl Stats {
+  pub fn new() -> Self {
+    Self {
+      reads: AtomicU64::new(0),
+      writes: AtomicU64::new(0),
+      swaps: AtomicU64::new(0),
+    }
+  }
+
+  pub fn reset(&self) {
+    self.reads.store(0, ORDER);
+    self.writes.store(0, ORDER);
+    self.swaps.store(0, ORDER);
+  }
+
+  fn read(&self, n: u64) {
+    self.reads.fetch_add(n, ORDER);
+  }
+
+  fn write(&self, n: u64) {
+    self.writes.fetch_add(n, ORDER);
+  }
+
+  fn swap(&self, n: u64) {
+    self.swaps.fetch_add(n, ORDER);
+  }
 }
 impl Display for Stats {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     write!(
       f,
       "reads: {}, writes: {}, swaps: {}",
-      format_number(self.reads.get() as f32),
-      format_number(self.writes.get() as f32),
-      format_number(self.swaps.get() as f32)
+      format_number(self.reads.load(ORDER) as f32),
+      format_number(self.reads.load(ORDER) as f32),
+      format_number(self.reads.load(ORDER) as f32)
     )
   }
 }
-impl Stats {
-  pub fn new() -> Self {
-    Self {
-      reads: Cell::new(0),
-      writes: Cell::new(0),
-      swaps: Cell::new(0),
-    }
-  }
-
-  pub fn reset(&self) {
-    self.reads.replace(0);
-    self.writes.replace(0);
-    self.swaps.replace(0);
-  }
-
-  fn read(&self, n: u64) {
-    self.reads.replace(self.reads.get() + n);
-  }
-
-  fn write(&self, n: u64) {
-    self.writes.replace(self.writes.get() + n);
-  }
-
-  fn swap(&self, n: u64) {
-    self.swaps.replace(self.swaps.get() + n);
-  }
-}
-
-#[derive(Debug, Copy)]
-pub enum ArrayGuard<T: ?Sized + Index<usize> + IndexMut<usize>> {
-  Read((*mut T, usize)),
-  Write((*mut T, usize)),
-}
-
-impl<T: ?Sized + Index<usize> + IndexMut<usize>> Clone for ArrayGuard<T> {
+impl Clone for Stats {
   fn clone(&self) -> Self {
-    match self {
-      Self::Read((pointer, index)) => Self::Read((*pointer, *index)),
-      Self::Write((pointer, index)) => Self::Write((*pointer, *index)),
+    Self {
+      reads: AtomicU64::new(self.reads.load(ORDER)),
+      writes: AtomicU64::new(self.writes.load(ORDER)),
+      swaps: AtomicU64::new(self.swaps.load(ORDER)),
     }
   }
 }
-impl<T: ?Sized + Index<usize> + IndexMut<usize>> Deref for ArrayGuard<T> {
-  type Target = <T as Index<usize>>::Output;
-
-  fn deref(&self) -> &Self::Target {
-    match self {
-      Self::Read((pointer, index)) => unsafe { &(**pointer)[*index] },
-      Self::Write((pointer, index)) => unsafe { &mut (**pointer)[*index] },
-    }
-  }
-}
-impl<T: ?Sized + Index<usize> + IndexMut<usize>> DerefMut for ArrayGuard<T> {
-  fn deref_mut(&mut self) -> &mut Self::Target {
-    match self {
-      Self::Read(_) => panic!("Read-only"),
-      Self::Write((pointer, index)) => unsafe { &mut (**pointer)[*index] },
-    }
-  }
-}
-unsafe impl<T: ?Sized + Index<usize> + IndexMut<usize>> Sync for ArrayGuard<T> {}
-unsafe impl<T: ?Sized + Index<usize> + IndexMut<usize>> Send for ArrayGuard<T> {}
 
 enum HighlightType {
   Read,
@@ -151,33 +128,24 @@ impl Highlight {
   }
 }
 
-pub struct ArrayWithCounters<'a, T: 'a> {
-  pub data: Mutex<UnsafeCell<Vec<T>>>,
-  guard: UnsafeCell<ArrayGuard<Vec<T>>>,
+#[derive(Debug)]
+pub struct ArrayWithCounters {
+  pub data: Mutex<Vec<AtomicUsize>>,
   stats: Stats,
-  pub highlighted: Mutex<UnsafeCell<Vec<Highlight>>>,
-  phantom: PhantomData<&'a T>,
+  pub highlighted: Mutex<Vec<Highlight>>,
 }
 
-unsafe impl<'a, T> Sync for ArrayWithCounters<'a, T> {}
-
-impl<'a, T> ArrayWithCounters<'a, T> {
-  pub fn new(vec: Vec<T>) -> Self {
-    let data = Mutex::new(UnsafeCell::new(vec));
-    let guard = UnsafeCell::new(ArrayGuard::Read((data.lock().unwrap().get(), 0)));
+impl ArrayWithCounters {
+  pub fn new(vec: Vec<usize>) -> Self {
+    let vec = vec.into_iter().map(AtomicUsize::new).collect();
     ArrayWithCounters {
-      data,
-      guard,
+      data: Mutex::new(vec),
       stats: Stats::new(),
-      highlighted: Mutex::new(UnsafeCell::new(Vec::with_capacity(2))),
-      phantom: PhantomData,
+      highlighted: Mutex::new(Vec::with_capacity(2)),
     }
   }
 
-  pub fn swap(&self, a: usize, b: usize)
-  where
-    T: Copy,
-  {
+  pub fn swap(&self, a: usize, b: usize) {
     if a == b {
       return;
     }
@@ -187,91 +155,70 @@ impl<'a, T> ArrayWithCounters<'a, T> {
     self.stats.swap(1);
 
     let mut highlighted = self.highlighted.lock().unwrap();
-    highlighted.get_mut().clear();
-    highlighted.get_mut().push(Highlight::swap(a));
-    highlighted.get_mut().push(Highlight::swap(b));
+    highlighted.clear();
+    highlighted.push(Highlight::swap(a));
+    highlighted.push(Highlight::swap(b));
     Mutex::unlock(highlighted);
 
     thread::sleep(SWAP_TIME);
 
-    self.data.lock().unwrap().get_mut().swap(a, b);
+    self.data.lock().unwrap().swap(a, b);
   }
 
-  pub fn poll(&self) -> Stats {
-    self.stats.clone()
+  pub fn poll(&self) -> &Stats {
+    &self.stats
   }
 
   pub fn reset(&self) {
     self.stats.reset();
   }
 
-  pub fn index_mut(&self, index: usize) -> ArrayGuard<Vec<T>> {
+  pub fn set(&self, index: usize, value: usize) {
     self.stats.write(1);
 
     let mut highlighted = self.highlighted.lock().unwrap();
-    highlighted.get_mut().clear();
-    highlighted.get_mut().push(Highlight::write(index));
+    highlighted.clear();
+    highlighted.push(Highlight::write(index));
     Mutex::unlock(highlighted);
 
     thread::sleep(WRITE_TIME);
 
-    let pointer = self.data.lock().unwrap().get();
-    ArrayGuard::Write((pointer, index))
+    self.data.lock().unwrap()[index].store(value, ORDER);
   }
 
-  pub fn highlights(&self) -> &Vec<Highlight> {
-    unsafe { &*self.highlighted.lock().unwrap().get() }
-  }
-
-  #[allow(clippy::mut_from_ref)]
-  pub fn deref_mut(&self) -> &mut Vec<T> {
-    unsafe { &mut *self.data.lock().unwrap().get() }
-  }
-}
-impl<'a, T> Index<usize> for ArrayWithCounters<'a, T> {
-  type Output = ArrayGuard<Vec<T>>;
-
-  fn index(&self, index: usize) -> &Self::Output {
+  pub fn get(&self, index: usize) -> usize {
     self.stats.read(1);
 
     let mut highlighted = self.highlighted.lock().unwrap();
-    highlighted.get_mut().clear();
-    highlighted.get_mut().push(Highlight::read(index));
+    highlighted.clear();
+    highlighted.push(Highlight::read(index));
     Mutex::unlock(highlighted);
 
     thread::sleep(READ_TIME);
 
-    unsafe {
-      *self.guard.get() = ArrayGuard::Read((self.data.lock().unwrap().get(), index));
-    }
+    let data = &*self.data.lock().unwrap();
 
-    unsafe { &(*self.guard.get()) }
+    data[index].load(ORDER)
   }
-}
 
-impl<'a, T> IndexMut<usize> for ArrayWithCounters<'a, T> {
-  fn index_mut(&mut self, index: usize) -> &mut Self::Output {
-    self.stats.read(1);
+  pub fn to_usize_vec(&self) -> Vec<usize> {
+    let lock = self.data.lock().unwrap();
+    let vec = lock.iter().map(|x| x.load(ORDER)).collect();
 
-    let mut highlighted = self.highlighted.lock().unwrap();
-    highlighted.get_mut().clear();
-    highlighted.get_mut().push(Highlight::write(index));
-    Mutex::unlock(highlighted);
-
-    thread::sleep(WRITE_TIME);
-
-    unsafe {
-      *self.guard.get() = ArrayGuard::Write((self.data.lock().unwrap().get(), index));
-    }
-
-    unsafe { &mut (*self.guard.get()) }
+    vec
   }
-}
 
-impl<'a, T> Deref for ArrayWithCounters<'a, T> {
-  type Target = Vec<T>;
+  pub fn shuffle(&self, thread_rng: &mut ThreadRng) {
+    let lock = &mut *self.data.lock().unwrap();
 
-  fn deref(&self) -> &Self::Target {
-    unsafe { &*self.data.lock().unwrap().get() }
+    lock.shuffle(thread_rng);
+  }
+
+  pub fn len(&self) -> usize {
+    self.data.lock().unwrap().len()
+  }
+
+  pub fn highlights(&self) -> Vec<Highlight> {
+    (*self.highlighted.lock().unwrap()).clone()
   }
 }

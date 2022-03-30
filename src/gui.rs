@@ -13,10 +13,10 @@ use std::sync::{
 use super::{
   array::Highlight,
   config::{ITEM_COUNT, WINDOW_SIZE},
-  ArrayWithCounters, Item,
+  ArrayWithCounters,
 };
 
-pub fn run_gui(mutex_clone: Arc<ArrayWithCounters<'static, Item>>, done: Arc<AtomicBool>) {
+pub fn run_gui(mutex_clone: Arc<ArrayWithCounters>, done: Arc<AtomicBool>) {
   let x_coords = (0..ITEM_COUNT)
     .map(|i| {
       (
@@ -35,26 +35,26 @@ pub fn run_gui(mutex_clone: Arc<ArrayWithCounters<'static, Item>>, done: Arc<Ato
   });
 }
 
-struct SortsWindowHandler<'a, T> {
-  array: Arc<ArrayWithCounters<'a, T>>,
+struct SortsWindowHandler {
+  array: Arc<ArrayWithCounters>,
   done: Arc<AtomicBool>,
   x_coords: Vec<(f32, f32)>,
 }
 
-impl WindowHandler for SortsWindowHandler<'_, usize> {
+impl WindowHandler for SortsWindowHandler {
   fn on_draw(&mut self, helper: &mut WindowHelper, graphics: &mut Graphics2D) {
     graphics.clear_screen(Color::BLACK);
 
     let count = ITEM_COUNT as f32;
+    let size = WINDOW_SIZE as f32;
 
-    let data = (*self.array).clone();
+    let data = (*self.array).to_usize_vec();
 
-    for (i, &item) in data.iter().enumerate() {
+    for (i, item) in data.into_iter().enumerate() {
       let item = item as f32 + 1.0;
 
       let (x1, x2) = self.x_coords[i];
 
-      let size = 800_f32;
       let top_left = Vector2::new(x1, size * (1.0 - (item / count)));
       let bottom_right = Vector2::new(x2, size);
 
@@ -64,14 +64,13 @@ impl WindowHandler for SortsWindowHandler<'_, usize> {
     let highlights = self.array.highlights();
 
     for Highlight(i, color) in highlights {
-      let (x1, x2) = self.x_coords[*i];
-      let item = *self.array[*i] as f32 + 1.0;
+      let (x1, x2) = self.x_coords[i];
+      let item = self.array.get(i) as f32 + 1.0;
 
-      let size = 800_f32;
       let top_left = Vector2::new(x1, size * (1.0 - (item / count)));
       let bottom_right = Vector2::new(x2, size);
 
-      graphics.draw_rectangle(Rectangle::new(top_left, bottom_right), *color)
+      graphics.draw_rectangle(Rectangle::new(top_left, bottom_right), color)
     }
 
     if self.done.load(Ordering::Relaxed) {

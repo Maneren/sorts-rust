@@ -1,15 +1,12 @@
 use super::Arr;
 
-pub fn selection_sort<T>(array: Arr<T>, start: usize, end: usize)
-where
-  T: Ord + Copy,
-{
+pub fn selection_sort(array: Arr, start: usize, end: usize) {
   for i in start..=end {
     let mut smallest_i = i;
-    let mut smallest_val = *array[smallest_i];
+    let mut smallest_val = array.get(smallest_i);
 
     for j in i..=end {
-      let current = *array[j];
+      let current = array.get(j);
 
       if current < smallest_val {
         smallest_i = j;
