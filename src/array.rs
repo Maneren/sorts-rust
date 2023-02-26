@@ -10,9 +10,8 @@ use std::{
 use rand::prelude::{SliceRandom, ThreadRng};
 use speedy2d::color::Color;
 
-use crate::ORDER;
-
 use super::config::{READ_TIME, SWAP_TIME, WRITE_TIME};
+use crate::ORDER;
 
 #[allow(
   clippy::cast_precision_loss,
@@ -30,7 +29,7 @@ fn format_number(input: f32) -> String {
   let i = input.log(base).floor();
   let number = input / base.powi(i as i32);
 
-  let string = format!("{:.2}", number)
+  let string = format!("{number:.2}")
     .trim_end_matches('0')
     .trim_end_matches('.')
     .to_owned();
@@ -81,8 +80,8 @@ impl Display for Stats {
       f,
       "reads: {}, writes: {}, swaps: {}",
       format_number(self.reads.load(ORDER) as f32),
-      format_number(self.reads.load(ORDER) as f32),
-      format_number(self.reads.load(ORDER) as f32)
+      format_number(self.writes.load(ORDER) as f32),
+      format_number(self.swaps.load(ORDER) as f32)
     )
   }
 }

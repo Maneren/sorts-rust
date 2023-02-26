@@ -16,6 +16,8 @@ mod tim;
 mod weave_merge;
 
 mod common;
+use std::{collections::HashMap, sync::Arc};
+
 use common::*;
 
 use self::{
@@ -23,9 +25,7 @@ use self::{
   in_place_quick::*, insertion::*, intro::*, merge::*, quick::*, selection::*, strand::*, tim::*,
   weave_merge::*,
 };
-
-use super::{array::ArrayWithCounters};
-use std::{collections::HashMap, sync::Arc};
+use super::array::ArrayWithCounters;
 
 pub type Arr = Arc<ArrayWithCounters>;
 

@@ -1,12 +1,15 @@
 #![allow(clippy::pedantic)]
-#![feature(int_log)]
 #![feature(is_sorted)]
 #![feature(mutex_unlock)]
 
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Arc;
-use std::thread;
-use std::time::{Duration, Instant};
+use std::{
+  sync::{
+    atomic::{AtomicBool, Ordering},
+    Arc,
+  },
+  thread,
+  time::{Duration, Instant},
+};
 
 mod array;
 use array::ArrayWithCounters;
@@ -15,9 +18,8 @@ mod sorts;
 use sorts::{get_sorts, run_sort, Sort};
 
 mod gui;
-use gui::run_gui;
-
 use config::ITEM_COUNT;
+use gui::run_gui;
 
 pub type Item = usize;
 
@@ -26,12 +28,12 @@ mod config {
 
   pub const WINDOW_SIZE: u32 = 900;
 
-  pub const ITEM_COUNT: usize = 4096;
+  pub const ITEM_COUNT: usize = 8192;
 
-  pub const BASE_TIME: u64 = 100;
-  pub const READ_TIME: Duration = Duration::from_micros(BASE_TIME);
-  pub const WRITE_TIME: Duration = Duration::from_micros(2 * BASE_TIME);
-  pub const SWAP_TIME: Duration = Duration::from_micros(2 * BASE_TIME);
+  pub const BASE_TIME: u64 = 1;
+  pub const READ_TIME: Duration = Duration::from_nanos(BASE_TIME);
+  pub const WRITE_TIME: Duration = Duration::from_nanos(2 * BASE_TIME);
+  pub const SWAP_TIME: Duration = Duration::from_nanos(5 * BASE_TIME);
 }
 
 fn main() {
@@ -82,12 +84,12 @@ fn run_sorts(nums: Arc<ArrayWithCounters>, done_flag: Arc<AtomicBool>) {
     }};
   }
 
-  check_sort!(Sort::Bubble);
+  /* check_sort!(Sort::Bubble);
   check_sort!(Sort::CoctailShaker);
   check_sort!(Sort::Selection);
   check_sort!(Sort::Gnome);
   check_sort!(Sort::Insertion);
-  check_sort!(Sort::Strand);
+  check_sort!(Sort::Strand); */
   check_sort!(Sort::Heap);
   check_sort!(Sort::Quick);
   check_sort!(Sort::InPlaceQuick);

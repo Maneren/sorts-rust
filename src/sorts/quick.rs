@@ -1,6 +1,6 @@
-use super::Arr;
-
 use rand::Rng;
+
+use super::Arr;
 
 pub fn quick_sort(array: Arr, start: usize, end: usize) {
   let mut rng = rand::thread_rng();

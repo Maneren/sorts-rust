@@ -1,13 +1,14 @@
+use std::sync::{
+  atomic::{AtomicBool, Ordering},
+  Arc,
+};
+
 use speedy2d::{
   color::Color,
   dimen::Vector2,
   shape::Rectangle,
   window::{WindowHandler, WindowHelper},
   Graphics2D, Window,
-};
-use std::sync::{
-  atomic::{AtomicBool, Ordering},
-  Arc,
 };
 
 use super::{

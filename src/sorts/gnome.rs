@@ -9,9 +9,7 @@ pub fn gnome_sort(array: Arr, start: usize, end: usize) {
     } else {
       array.swap(a, b);
 
-      if index != 0 {
-        index -= 1
-      }
+      index = index.saturating_sub(1);
     }
   }
 }
