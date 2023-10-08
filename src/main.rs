@@ -70,14 +70,10 @@ fn run_sorts(nums: Arc<ArrayWithCounters>, done_flag: Arc<AtomicBool>) {
       println!("{:?} - {:?}", $sort, time);
       println!("{}\n", nums.poll());
 
-      let correct = true;
       for (a, b) in (0..nums.len()).zip(1..nums.len()) {
         if nums.get(a) > nums.get(b) {
-          panic!("{}", a);
+          panic!("Incorrect: {a} is not <= {b}");
         }
-      }
-      if !correct {
-        panic!("Incorrect!!!");
       }
 
       nums.reset();
