@@ -2,7 +2,7 @@ use std::{
   fmt::{self, Debug, Display},
   sync::{
     atomic::{AtomicU64, AtomicUsize},
-    Mutex,
+    Mutex, MutexGuard,
   },
   thread,
 };
@@ -153,15 +153,11 @@ impl ArrayWithCounters {
     self.stats.write(2);
     self.stats.swap(1);
 
-    let mut highlighted = self.highlighted.lock().unwrap();
-    highlighted.clear();
-    highlighted.push(Highlight::swap(a));
-    highlighted.push(Highlight::swap(b));
-    Mutex::unlock(highlighted);
+    self.highlight(&[Highlight::swap(a), Highlight::swap(b)]);
 
     thread::sleep(SWAP_TIME);
 
-    self.data.lock().unwrap().swap(a, b);
+    self.data().swap(a, b);
   }
 
   pub fn poll(&self) -> &Stats {
@@ -175,46 +171,47 @@ impl ArrayWithCounters {
   pub fn set(&self, index: usize, value: usize) {
     self.stats.write(1);
 
-    let mut highlighted = self.highlighted.lock().unwrap();
-    highlighted.clear();
-    highlighted.push(Highlight::write(index));
-    Mutex::unlock(highlighted);
+    self.highlight(&[Highlight::write(index)]);
 
     thread::sleep(WRITE_TIME);
 
-    self.data.lock().unwrap()[index].store(value, ORDER);
+    self.data()[index].store(value, ORDER);
   }
 
   pub fn get(&self, index: usize) -> usize {
     self.stats.read(1);
 
-    let mut highlighted = self.highlighted.lock().unwrap();
-    highlighted.clear();
-    highlighted.push(Highlight::read(index));
-    Mutex::unlock(highlighted);
+    self.highlight(&[Highlight::read(index)]);
 
     thread::sleep(READ_TIME);
 
-    let data = &*self.data.lock().unwrap();
-
-    data[index].load(ORDER)
+    self.data()[index].load(ORDER)
   }
 
   pub fn to_usize_vec(&self) -> Vec<usize> {
-    let lock = self.data.lock().unwrap();
-    let vec = lock.iter().map(|x| x.load(ORDER)).collect();
-
-    vec
+    self.data().iter().map(|x| x.load(ORDER)).collect()
   }
 
   pub fn shuffle(&self, thread_rng: &mut ThreadRng) {
-    let lock = &mut *self.data.lock().unwrap();
-
-    lock.shuffle(thread_rng);
+    self.data().shuffle(thread_rng);
   }
 
   pub fn len(&self) -> usize {
-    self.data.lock().unwrap().len()
+    self.data().len()
+  }
+
+  fn data(&self) -> MutexGuard<Vec<AtomicUsize>> {
+    self.data.lock().unwrap()
+  }
+
+  fn highlight(&self, highlights: &[Highlight]) {
+    let mut highlighted = self.highlighted.lock().unwrap();
+
+    highlighted.clear();
+
+    for highlight in highlights {
+      highlighted.push(*highlight);
+    }
   }
 
   pub fn highlights(&self) -> Vec<Highlight> {

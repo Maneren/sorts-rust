@@ -1,7 +1,4 @@
-use std::sync::{
-  atomic::{AtomicBool, Ordering},
-  Arc,
-};
+use std::sync::Arc;
 
 use speedy2d::{
   color::Color,
@@ -13,32 +10,37 @@ use speedy2d::{
 
 use super::{
   array::Highlight,
-  config::{ITEM_COUNT, WINDOW_SIZE},
+  config::{ITEM_COUNT, WINDOW_WIDTH},
   ArrayWithCounters,
 };
+use crate::{config::WINDOW_HEIGHT, DONE_FLAG, ORDER};
 
-pub fn run_gui(mutex_clone: Arc<ArrayWithCounters>, done: Arc<AtomicBool>) {
-  let x_coords = (0..ITEM_COUNT)
-    .map(|i| {
-      (
-        (WINDOW_SIZE as f32) / (ITEM_COUNT as f32) * (i as f32),
-        (WINDOW_SIZE as f32) / (ITEM_COUNT as f32) * ((i as f32) + 1_f32),
-      )
-    })
-    .collect::<Vec<_>>();
+pub fn run_gui(mutex_clone: Arc<ArrayWithCounters>) {
+  let x_coords = calc_x_coords(WINDOW_WIDTH);
 
-  let window = Window::new_centered("Sorts Animation", (WINDOW_SIZE, WINDOW_SIZE)).unwrap();
+  let window = Window::new_centered("Sorts Animation", (WINDOW_WIDTH, WINDOW_HEIGHT)).unwrap();
 
   window.run_loop(SortsWindowHandler {
     array: mutex_clone,
-    done,
+    height: WINDOW_WIDTH as f32,
     x_coords,
   });
 }
 
+fn calc_x_coords(width: u32) -> Vec<(f32, f32)> {
+  let step_size = width as f32 / ITEM_COUNT as f32;
+
+  (0..ITEM_COUNT)
+    .map(|i| {
+      let x = step_size * (i as f32);
+      (x, x + step_size)
+    })
+    .collect()
+}
+
 struct SortsWindowHandler {
   array: Arc<ArrayWithCounters>,
-  done: Arc<AtomicBool>,
+  height: f32,
   x_coords: Vec<(f32, f32)>,
 }
 
@@ -47,17 +49,14 @@ impl WindowHandler for SortsWindowHandler {
     graphics.clear_screen(Color::BLACK);
 
     let count = ITEM_COUNT as f32;
-    let size = WINDOW_SIZE as f32;
 
     let data = (*self.array).to_usize_vec();
 
-    for (i, item) in data.into_iter().enumerate() {
+    for (item, &(x1, x2)) in data.into_iter().zip(self.x_coords.iter()) {
       let item = item as f32 + 1.0;
 
-      let (x1, x2) = self.x_coords[i];
-
-      let top_left = Vector2::new(x1, size * (1.0 - (item / count)));
-      let bottom_right = Vector2::new(x2, size);
+      let top_left = Vector2::new(x1, self.height * (1.0 - (item / count)));
+      let bottom_right = Vector2::new(x2, self.height);
 
       graphics.draw_rectangle(Rectangle::new(top_left, bottom_right), Color::WHITE)
     }
@@ -68,16 +67,23 @@ impl WindowHandler for SortsWindowHandler {
       let (x1, x2) = self.x_coords[i];
       let item = self.array.get(i) as f32 + 1.0;
 
-      let top_left = Vector2::new(x1, size * (1.0 - (item / count)));
-      let bottom_right = Vector2::new(x2, size);
+      let top_left = Vector2::new(x1, self.height * (1.0 - (item / count)));
+      let bottom_right = Vector2::new(x2, self.height);
 
       graphics.draw_rectangle(Rectangle::new(top_left, bottom_right), color)
     }
 
-    if self.done.load(Ordering::Relaxed) {
+    if DONE_FLAG.load(ORDER) {
       helper.terminate_loop();
     }
 
     helper.request_redraw();
+  }
+
+  fn on_resize(&mut self, _helper: &mut WindowHelper, new_size: Vector2<u32>) {
+    let Vector2 { x, y } = new_size;
+
+    self.height = y as f32;
+    self.x_coords = calc_x_coords(x);
   }
 }

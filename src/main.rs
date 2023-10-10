@@ -26,7 +26,8 @@ pub type Item = usize;
 mod config {
   use std::time::Duration;
 
-  pub const WINDOW_SIZE: u32 = 900;
+  pub const WINDOW_WIDTH: u32 = 1600;
+  pub const WINDOW_HEIGHT: u32 = 800;
 
   pub const ITEM_COUNT: usize = 8192;
 
@@ -36,25 +37,24 @@ mod config {
   pub const SWAP_TIME: Duration = Duration::from_nanos(5 * BASE_TIME);
 }
 
+static DONE_FLAG: AtomicBool = AtomicBool::new(false);
+
 fn main() {
   let nums: ArrayWithCounters = ArrayWithCounters::new((0..ITEM_COUNT).collect());
-  let mutex = Arc::new(nums);
-  let mutex_clone = mutex.clone();
-
-  let done_flag = Arc::new(AtomicBool::new(false));
-  let done_flag_clone = done_flag.clone();
+  let arc = Arc::new(nums);
+  let arc_clone = arc.clone();
 
   thread::spawn(move || {
     thread::sleep(Duration::from_millis(500));
-    run_sorts(mutex, done_flag_clone);
+    run_sorts(arc_clone);
   });
 
-  run_gui(mutex_clone, done_flag);
+  run_gui(arc);
 }
 
 static ORDER: Ordering = Ordering::Relaxed;
 
-fn run_sorts(nums: Arc<ArrayWithCounters>, done_flag: Arc<AtomicBool>) {
+fn run_sorts(nums: Arc<ArrayWithCounters>) {
   let sorts_dictionary = get_sorts();
 
   let mut rng = rand::thread_rng();
@@ -97,5 +97,5 @@ fn run_sorts(nums: Arc<ArrayWithCounters>, done_flag: Arc<AtomicBool>) {
   check_sort!(Sort::WeaveMerge);
   check_sort!(Sort::Counting);
 
-  done_flag.store(true, Ordering::Relaxed);
+  DONE_FLAG.store(true, Ordering::Relaxed);
 }
